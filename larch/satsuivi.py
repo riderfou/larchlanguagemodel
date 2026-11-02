@@ -146,15 +146,33 @@ def read_window(scene: s2.Scene, grid: s2.Grid, window, bands=READ_BANDS) -> tup
     return out, scl
 
 
-def _zone_window(grid: s2.Grid, zone: Zone) -> tuple[int, int, int, int] | None:
+def _zone_center(grid: s2.Grid, zone: Zone) -> tuple[float, float]:
+    """Position (colonne, ligne) du centre de la zone dans la grille 20 m de la tuile."""
     from rasterio.warp import transform as warp_xy
     (x,), (y,) = warp_xy("EPSG:4326", grid.crs, [zone.lon], [zone.lat])
-    col, row = ~grid.transform * (x, y)
-    r = int(math.ceil(max(zone.radius_km, REF_RADIUS_KM) * 1000 / s2.RES))
-    c0, r0 = int(col) - r, int(row) - r   # fenêtre à la taille du disque des témoins
-    if c0 < 0 or r0 < 0 or c0 + 2 * r > grid.width or r0 + 2 * r > grid.height:
+    return ~grid.transform * (x, y)
+
+
+def _zone_window(grid: s2.Grid, zone: Zone) -> tuple[int, int, int, int] | None:
+    """Fenêtre du disque des témoins, rognée au bord de la tuile.
+
+    Refusée seulement si le disque du mélèze (`radius_km`) ne tient pas dans la tuile.
+    """
+    col, row = _zone_center(grid, zone)
+    r_larch = zone.radius_km * 1000 / s2.RES
+    if col - r_larch < 0 or row - r_larch < 0 or col + r_larch > grid.width or row + r_larch > grid.height:
         return None
-    return c0, r0, 2 * r, 2 * r
+    r = int(math.ceil(max(zone.radius_km, REF_RADIUS_KM) * 1000 / s2.RES))
+    c0, r0 = max(0, int(col) - r), max(0, int(row) - r)
+    c1, r1 = min(grid.width, int(col) + r), min(grid.height, int(row) + r)
+    return c0, r0, c1 - c0, r1 - r0
+
+
+def _disk(grid: s2.Grid, window, zone: Zone, radius_km: float) -> np.ndarray:
+    col, row, w, h = window
+    cx, cy = _zone_center(grid, zone)
+    yy, xx = np.mgrid[0:h, 0:w]
+    return (xx + col + 0.5 - cx) ** 2 + (yy + row + 0.5 - cy) ** 2 <= (radius_km * 1000 / s2.RES) ** 2
 
 
 def _larch_in_window(grid: s2.Grid, window, zone: Zone, geojsons: list[Path]) -> np.ndarray:
@@ -176,10 +194,7 @@ def _larch_in_window(grid: s2.Grid, window, zone: Zone, geojsons: list[Path]) ->
                 continue
             shapes.append((transform_geom("EPSG:4326", grid.crs, f["geometry"]), 1))
     m = rasterize(shapes, out_shape=(h, w), transform=tr, dtype="uint8") > 0 if shapes else np.zeros((h, w), bool)
-    rad = zone.radius_km * 1000 / s2.RES
-    yy, xx = np.mgrid[0:h, 0:w]
-    disk = (xx - w / 2 + 0.5) ** 2 + (yy - h / 2 + 0.5) ** 2 <= rad ** 2
-    return m & disk
+    return m & _disk(grid, window, zone, zone.radius_km)
 
 
 def _dilate(m: np.ndarray, n: int) -> np.ndarray:
@@ -211,8 +226,7 @@ def _evergreen_in_window(grid: s2.Grid, window, zone: Zone) -> np.ndarray:
               for f in r.json().get("features", []) if f.get("geometry")]
     m = rasterize(shapes, out_shape=(h, w), transform=tr, dtype="uint8") > 0 if shapes else np.zeros((h, w), bool)
     m = binary_erosion(m, iterations=1)   # bords des polygones écartés
-    yy, xx = np.mgrid[0:h, 0:w]
-    return m & ((xx - w / 2 + 0.5) ** 2 + (yy - h / 2 + 0.5) ** 2 <= (w / 2) ** 2)
+    return m & _disk(grid, window, zone, max(zone.radius_km, REF_RADIUS_KM))
 
 
 def build_masks(zones: list[Zone], year: int, geojsons: list[Path], cache: Path | None = None,
@@ -307,7 +321,9 @@ def measure(zm: ZoneMask, bands: dict[str, np.ndarray]) -> dict:
         d_r, v_r = 0.0, 1.0
     rgb = [float(np.nanmean(v[ok])) for v in (r, g, b)]
     s = sum(rgb) or 1.0
-    hexcol = "#" + "".join(f"{int(max(0, min(255, round(v / 0.2 * 255)))):02x}" for v in rgb)
+    # Couleur d'affichage : une forêt vue d'en haut ne réfléchit que 3 à 8 % de la
+    # lumière, on étire donc 0-10 % de réflectance sur 0-255.
+    hexcol = "#" + "".join(f"{int(max(0, min(255, round(v / 0.1 * 255)))):02x}" for v in rgb)
     return {
         **row, "valid": 1, "reason": "",
         "gold_index": gold_from(d_l, d_r),

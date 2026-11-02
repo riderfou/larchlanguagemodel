@@ -258,7 +258,25 @@ sont donc calculés exactement de la même façon. Le workflow interroge les
 nouveaux passages à chaque exécution : seules les fenêtres des zones sont lues,
 ce qui prend quelques secondes par passage.
 
-__RESULTATS_SUIVI__
+**Saison 2026 (du 1er septembre au 2 novembre).** 594 mesures pour 19 zones, dont
+267 exploitables ; le reste est perdu sous les nuages, la neige ou l'ombre du
+relief. Le nombre de passages utiles varie de 9 à 27 selon la zone.
+
+- **Vars** : les trois zones, mesurées indépendamment, donnent la même courbe
+  (24 le 5 octobre, ~50 le 15, 94 à 99 le 22) et le même pic observé, le
+  **22 octobre**, suivi de la chute des aiguilles fin octobre.
+- **Massifs plus bas ou plus au sud** (Ubaye, Haut-Verdon, Haute-Tinée,
+  Vallouise) : coloration plus tardive, pic estimé début novembre.
+- **Chamonix-Lognan** : le satellite reste en « début de coloration » (31 au
+  plus) alors que la webcam montrait des mélèzes très dorés le 2 novembre. Le
+  disque de 4 km mêle plusieurs versants et altitudes : c'est le genre d'écart
+  que la comparaison webcam − satellite doit signaler.
+- **Les Menuires** : seulement 16 ha de mélèze à moins de 4 km, donc une mesure
+  plus bruitée.
+
+L'échelle (0,12) et les filtres ont été réglés sur cette première saison. La
+comparaison avec les webcams, affichée sur chaque fiche dès que les deux
+courbes ont des jours communs, permettra de les affiner.
 
 ## Automatisation (GitHub Actions + GitHub Pages)
 
