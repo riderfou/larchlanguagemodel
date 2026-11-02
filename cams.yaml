@@ -42,8 +42,12 @@ cams:
       type: webcamhd
       cam: bessans_relais
       quality: "1080"
-    # roi:
-    #   - [[0.00, 0.55], [1.00, 0.55], [1.00, 0.85], [0.00, 0.85]]
+    # Mélézins des deux montagnes face à la webcam et du fond de vallée (rive
+    # gauche). Le versant de gauche, à contre-jour l'après-midi, est exclu.
+    roi:
+      - [[0.28, 0.40], [0.33, 0.25], [0.40, 0.12], [0.44, 0.05], [0.50, 0.15], [0.57, 0.30], [0.58, 0.43], [0.28, 0.43]]
+      - [[0.57, 0.30], [0.62, 0.15], [0.68, 0.08], [0.75, 0.25], [0.82, 0.33], [0.82, 0.42], [0.58, 0.43]]
+      - [[0.17, 0.42], [0.32, 0.45], [0.32, 0.55], [0.17, 0.52]]
 
   - id: serre-chevalier-mea
     name: Serre Chevalier – La Méa
@@ -65,16 +69,20 @@ cams:
     lon: 6.870
     elevation: 2050
     source:
-      type: browser
-      # La page www.saintveran.com/webcams n'héberge pas les images : elle
-      # intègre les lecteurs de vision-environnement.com (iframes). On vise
-      # directement le lecteur « stveran0 ».
-      url: https://www.vision-environnement.com/live/player/webcams-paris/stveran0.php?ticker=0
+      type: image
+      # La page www.saintveran.com/webcams intègre les lecteurs vidéo de
+      # vision-environnement.com (flux HLS). Le lecteur publie aussi une
+      # capture fixe en 3840×2160, rafraîchie régulièrement :
+      url: https://www.vision-environnement.com/live/modules/timelapse/capture/stveran.jpg
+    # Versant de droite et haute vallée de l'Aigue Blanche ; le grand épicéa
+    # du premier plan et le village sont exclus.
+    roi:
+      - [[0.27, 0.40], [0.45, 0.40], [0.60, 0.30], [0.75, 0.12], [0.90, 0.06], [1.00, 0.06], [1.00, 0.97], [0.70, 0.97], [0.63, 0.85], [0.62, 0.55], [0.47, 0.62], [0.30, 0.58]]
 
   # --- Sélection Skaping (tri de skaping.com/camera/mosaic, nov. 2026) -------
   # Webcams où des mélézins sont bien visibles. Coordonnées = position de la
-  # webcam ; altitude = altitude du point (Open-Meteo), à ajuster. ROI à tracer
-  # (`larch roi <id>`) : sans elle l'alpage jauni fausse l'indice.
+  # webcam ; altitude = altitude du point (Open-Meteo), à ajuster. ROI tracées
+  # sur les images de midi du 2 nov. 2026 (`larch roi <id>` pour les ajuster).
 
   - id: vars-peynier
     name: Vars – Peynier
@@ -82,6 +90,11 @@ cams:
     lon: 6.699
     elevation: 2150
     source: {type: skaping, url: "https://www.skaping.com/vars/peynier"}
+    roi:
+      - [[0.27, 0.48], [0.60, 0.48], [0.60, 0.60], [0.34, 0.62], [0.27, 0.62]]
+      - [[0.34, 0.62], [0.60, 0.60], [0.60, 0.90], [0.40, 0.90], [0.34, 0.72]]
+      - [[0.84, 0.25], [0.90, 0.25], [0.90, 0.46], [0.84, 0.46]]
+      - [[0.93, 0.22], [1.00, 0.22], [1.00, 0.42], [0.93, 0.42]]
 
   - id: vars-chabrieres
     name: Vars – Chabrières
@@ -89,6 +102,10 @@ cams:
     lon: 6.664
     elevation: 2100
     source: {type: skaping, url: "https://www.skaping.com/vars/chabrieres"}
+    roi:
+      - [[0.00, 0.50], [0.10, 0.47], [0.25, 0.45], [0.28, 0.50], [0.28, 0.66], [0.00, 0.70]]
+      - [[0.28, 0.45], [0.40, 0.44], [0.40, 0.52], [0.36, 0.55], [0.28, 0.62]]
+      - [[0.43, 0.40], [0.50, 0.39], [0.50, 0.46], [0.43, 0.47]]
 
   - id: vars-les-claux
     name: Vars – Les Claux
@@ -96,6 +113,10 @@ cams:
     lon: 6.680
     elevation: 1900
     source: {type: skaping, url: "https://www.skaping.com/vars/les-claux"}
+    roi:
+      - [[0.43, 0.30], [0.52, 0.18], [0.58, 0.14], [0.66, 0.18], [0.70, 0.25], [0.70, 0.50], [0.43, 0.50]]
+      - [[0.70, 0.25], [0.78, 0.30], [0.78, 0.45], [0.70, 0.45]]
+      - [[0.03, 0.35], [0.30, 0.38], [0.30, 0.48], [0.03, 0.48]]
 
   - id: serre-chevalier-monetier
     name: Serre Chevalier – Monêtier
@@ -103,6 +124,12 @@ cams:
     lon: 6.501
     elevation: 1950
     source: {type: skaping, url: "https://www.skaping.com/serrechevalier/monetier"}
+    roi:
+      - [[0.00, 0.30], [0.10, 0.33], [0.10, 0.50], [0.00, 0.50]]
+      - [[0.10, 0.33], [0.22, 0.30], [0.30, 0.28], [0.40, 0.33], [0.48, 0.45], [0.48, 0.62], [0.24, 0.68], [0.18, 0.56], [0.10, 0.52]]
+      - [[0.50, 0.48], [0.58, 0.48], [0.58, 0.60], [0.50, 0.62]]
+      - [[0.62, 0.50], [0.70, 0.55], [0.70, 0.78], [0.64, 0.72]]
+      - [[0.84, 0.30], [0.90, 0.25], [0.96, 0.35], [0.96, 0.62], [0.92, 0.66], [0.84, 0.75], [0.80, 0.75], [0.80, 0.62]]
 
   - id: les-menuires-foret
     name: Les Menuires – Forêt (vue fixe)
@@ -111,6 +138,9 @@ cams:
     elevation: 1800
     # Vue fixe plongeant sur un mélézin dense : quasiment tout est mélèze.
     source: {type: skaping, url: "https://www.skaping.com/les-menuires/jardin-enfant"}
+    roi:
+      - [[0.00, 0.00], [0.56, 0.00], [0.56, 0.45], [0.35, 0.58], [0.10, 0.68], [0.00, 0.70]]
+      - [[0.75, 0.60], [0.82, 0.60], [0.82, 0.80], [0.75, 0.80]]
 
   - id: chamonix-lognan
     name: Chamonix – Plateau de Lognan (Argentière)
@@ -118,15 +148,19 @@ cams:
     lon: 6.943
     elevation: 1950
     source: {type: skaping, url: "https://www.skaping.com/chamonix/plateau-de-lognan"}
-
-  - id: valloire-poingt-ravier
-    name: Valloire – Poingt Ravier
-    lat: 45.168
-    lon: 6.424
-    elevation: 1700
-    source: {type: skaping, url: "https://www.skaping.com/valloire/poingt_ravier"}
+    roi:
+      - [[0.16, 0.36], [0.24, 0.38], [0.30, 0.55], [0.30, 0.62], [0.16, 0.50]]
+      - [[0.27, 0.62], [0.42, 0.64], [0.48, 0.66], [0.48, 0.82], [0.42, 0.92], [0.32, 0.92], [0.27, 0.75]]
+      - [[0.72, 0.45], [0.80, 0.32], [0.90, 0.18], [1.00, 0.14], [1.00, 0.48], [0.72, 0.50]]
 
   # Autres candidates (mélèzes visibles mais minoritaires ou lointains) :
+  #   https://www.skaping.com/valloire/poingt_ravier : testée, épicéas à
+  #     l'ombre et bouleaux, ~5 % de végétation colorée dans la ROI.
+  #     ROI si on veut la réactiver :
+  #     roi:
+  #       - [[0.05, 0.33], [0.25, 0.25], [0.45, 0.25], [0.50, 0.30], [0.50, 0.50], [0.30, 0.52], [0.10, 0.48], [0.05, 0.45]]
+  #       - [[0.52, 0.35], [0.62, 0.25], [0.72, 0.35], [0.75, 0.55], [0.62, 0.62], [0.52, 0.58]]
+  #       - [[0.76, 0.32], [0.96, 0.22], [0.96, 0.42], [0.80, 0.55], [0.76, 0.50]]
   #   https://www.skaping.com/les-menuires/clocher
   #   https://www.skaping.com/serre-chevalier/saint-chaffrey
   #   https://www.skaping.com/saintmartindebelleville/village

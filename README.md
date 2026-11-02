@@ -38,9 +38,10 @@ Autres commandes :
 
 ## Configurer les webcams (`cams.yaml`)
 
-Dix webcams sont préconfigurées : Bessans, Serre Chevalier – La Méa,
-Saint-Véran, et une sélection Skaping où des mélézins sont bien visibles
-(Vars ×3, Monêtier, Les Menuires, Chamonix-Lognan, Valloire). Pour chacune :
+Neuf webcams sont préconfigurées, avec leurs zones de mélèzes (ROI) :
+Bessans, Serre Chevalier – La Méa, Saint-Véran, et une sélection Skaping où
+des mélézins sont bien visibles (Vars ×3, Monêtier, Les Menuires,
+Chamonix-Lognan). Pour chacune :
 
 1. **La source.**
    - `type: skaping` : n'importe quelle page `www.skaping.com/<lieu>/<vue>`.
@@ -51,8 +52,9 @@ Saint-Véran, et une sélection Skaping où des mélézins sont bien visibles
    - `type: image` : URL directe d'un JPEG (outils développeur → onglet Réseau
      → filtrer `jpg`), le plus simple quand elle existe.
    - `type: browser` : Chromium headless, plus grande image visible de la page.
-     Dernier recours (Saint-Véran, dont les lecteurs viennent de
-     vision-environnement.com).
+     Dernier recours. (Les lecteurs vision-environnement.com, comme celui de
+     Saint-Véran, sont des flux vidéo ; ils publient aussi une capture fixe
+     `…/live/modules/timelapse/capture/<nom>.jpg`, utilisable en `type: image`.)
    - `type: windy` : webcams Windy (clé gratuite sur https://api.windy.com/keys
      dans la variable `WINDY_API_KEY`).
 
