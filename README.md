@@ -38,17 +38,28 @@ Autres commandes :
 
 ## Configurer les webcams (`cams.yaml`)
 
-Trois webcams sont préconfigurées (Bessans, Serre Chevalier – La Méa,
-Saint-Véran). Pour chacune :
+Dix webcams sont préconfigurées : Bessans, Serre Chevalier – La Méa,
+Saint-Véran, et une sélection Skaping où des mélézins sont bien visibles
+(Vars ×3, Monêtier, Les Menuires, Chamonix-Lognan, Valloire). Pour chacune :
 
-1. **La source.** Ces trois sites affichent l'image en JavaScript ; elles sont
-   donc en `type: browser` (Chromium headless, on prend la plus grande image
-   visible de la page). C'est le plus fragile : si vous trouvez l'URL directe du
-   JPEG (outils développeur → onglet Réseau → filtrer `jpg`), passez en
-   `type: image`, c'est plus rapide et plus fiable. Pour la page de Saint-Véran,
-   qui contient plusieurs webcams, ajoutez un `selector` CSS.
-   Les webcams **Windy** sont prises en charge (`type: windy`, clé gratuite sur
-   https://api.windy.com/keys dans la variable `WINDY_API_KEY`).
+1. **La source.**
+   - `type: skaping` : n'importe quelle page `www.skaping.com/<lieu>/<vue>`.
+     La dernière image est lue dans le HTML, sans navigateur, en 4096 px
+     (`quality: large`). La liste de toutes les webcams Skaping est sur
+     https://www.skaping.com/camera/mosaic.
+   - `type: webcamhd` : webcams app.webcam-hd.com (Bessans), via leur API.
+   - `type: image` : URL directe d'un JPEG (outils développeur → onglet Réseau
+     → filtrer `jpg`), le plus simple quand elle existe.
+   - `type: browser` : Chromium headless, plus grande image visible de la page.
+     Dernier recours (Saint-Véran, dont les lecteurs viennent de
+     vision-environnement.com).
+   - `type: windy` : webcams Windy (clé gratuite sur https://api.windy.com/keys
+     dans la variable `WINDY_API_KEY`).
+
+   Domaines contactés : `www.skaping.com`, `skaping.s3.gra.io.cloud.ovh.net`
+   (secours : `rvfbdt.skaping.com`), `app.webcam-hd.com`,
+   `skol-webcams-archives.s3.fr-par.scw.cloud`, `www.vision-environnement.com`,
+   `api.open-meteo.com`.
 2. **La zone de mélèzes (ROI).** Indispensable pour une mesure juste : sans
    ROI, l'herbe jaunie, les épicéas ou les pins cembro faussent l'indice.
    `larch roi <id>` produit une image quadrillée (coordonnées 0–1) ; reportez les

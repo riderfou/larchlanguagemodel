@@ -16,9 +16,16 @@
 #   image  : URL directe d'un JPEG/PNG (le plus fiable). Trouvable via les
 #            outils développeur du navigateur (onglet Réseau, filtrer « jpg »).
 #   page   : page HTML ; l'image est cherchée dans og:image / balises <img>.
+#   skaping: page www.skaping.com/<lieu>/<vue> : l'image la plus récente est
+#            lue dans le HTML (sans navigateur). `quality` : mini, small,
+#            large (défaut, 4096 px de large) ou full (12288 px, ~3,5 Mo).
+#            Les webcams 360° couvrent tout le tour : la ROI est indispensable.
+#   webcamhd: webcam app.webcam-hd.com (`cam` = identifiant, ex. bessans_relais,
+#            visible dans les requêtes /api/webcam/<cam>/...). Images servies
+#            par skol-webcams-archives.s3.fr-par.scw.cloud.
 #   browser: page rendue par un navigateur headless (Playwright) ; on récupère
-#            la plus grande image visible (ou `selector`). Pour les sites
-#            100 % JavaScript (Skaping, webcam-hd...).
+#            la plus grande image visible (ou `selector`). Dernier recours pour
+#            les sites 100 % JavaScript.
 #   windy  : webcam Windy (`webcam_id`), nécessite la variable WINDY_API_KEY
 #            (clé gratuite : https://api.windy.com/keys).
 #   file   : fichier local (tests, import manuel).
@@ -32,19 +39,25 @@ cams:
     lon: 7.000
     elevation: 1800
     source:
-      type: browser
-      url: https://app.webcam-hd.com/bessans/relais?lang=fr
+      type: webcamhd
+      cam: bessans_relais
+      quality: "1080"
     # roi:
     #   - [[0.00, 0.55], [1.00, 0.55], [1.00, 0.85], [0.00, 0.85]]
 
   - id: serre-chevalier-mea
     name: Serre Chevalier – La Méa
-    lat: 44.935
-    lon: 6.570
-    elevation: 1900
+    lat: 44.922
+    lon: 6.529
+    elevation: 2100
     source:
-      type: browser
+      type: skaping
       url: https://www.skaping.com/serre-chevalier/mea
+    # Panorama 360° : les mélèzes sont aux deux bords (le centre est de
+    # l'alpage, compté à tort comme « jaune » sans ROI).
+    roi:
+      - [[0.000, 0.20], [0.060, 0.22], [0.060, 0.36], [0.000, 0.36]]
+      - [[0.865, 0.33], [0.930, 0.25], [1.000, 0.17], [1.000, 0.36], [0.865, 0.37]]
 
   - id: saint-veran
     name: Saint-Véran (Queyras)
@@ -53,10 +66,72 @@ cams:
     elevation: 2050
     source:
       type: browser
-      url: https://www.saintveran.com/webcams
-      # La page contient plusieurs webcams : préciser laquelle avec un
-      # sélecteur CSS, ex. "iframe:nth-of-type(1)" ou "img.webcam".
-      # selector: "img"
+      # La page www.saintveran.com/webcams n'héberge pas les images : elle
+      # intègre les lecteurs de vision-environnement.com (iframes). On vise
+      # directement le lecteur « stveran0 ».
+      url: https://www.vision-environnement.com/live/player/webcams-paris/stveran0.php?ticker=0
+
+  # --- Sélection Skaping (tri de skaping.com/camera/mosaic, nov. 2026) -------
+  # Webcams où des mélézins sont bien visibles. Coordonnées = position de la
+  # webcam ; altitude = altitude du point (Open-Meteo), à ajuster. ROI à tracer
+  # (`larch roi <id>`) : sans elle l'alpage jauni fausse l'indice.
+
+  - id: vars-peynier
+    name: Vars – Peynier
+    lat: 44.575
+    lon: 6.699
+    elevation: 2150
+    source: {type: skaping, url: "https://www.skaping.com/vars/peynier"}
+
+  - id: vars-chabrieres
+    name: Vars – Chabrières
+    lat: 44.568
+    lon: 6.664
+    elevation: 2100
+    source: {type: skaping, url: "https://www.skaping.com/vars/chabrieres"}
+
+  - id: vars-les-claux
+    name: Vars – Les Claux
+    lat: 44.573
+    lon: 6.680
+    elevation: 1900
+    source: {type: skaping, url: "https://www.skaping.com/vars/les-claux"}
+
+  - id: serre-chevalier-monetier
+    name: Serre Chevalier – Monêtier
+    lat: 44.949
+    lon: 6.501
+    elevation: 1950
+    source: {type: skaping, url: "https://www.skaping.com/serrechevalier/monetier"}
+
+  - id: les-menuires-foret
+    name: Les Menuires – Forêt (vue fixe)
+    lat: 45.323
+    lon: 6.537
+    elevation: 1800
+    # Vue fixe plongeant sur un mélézin dense : quasiment tout est mélèze.
+    source: {type: skaping, url: "https://www.skaping.com/les-menuires/jardin-enfant"}
+
+  - id: chamonix-lognan
+    name: Chamonix – Plateau de Lognan (Argentière)
+    lat: 45.968
+    lon: 6.943
+    elevation: 1950
+    source: {type: skaping, url: "https://www.skaping.com/chamonix/plateau-de-lognan"}
+
+  - id: valloire-poingt-ravier
+    name: Valloire – Poingt Ravier
+    lat: 45.168
+    lon: 6.424
+    elevation: 1700
+    source: {type: skaping, url: "https://www.skaping.com/valloire/poingt_ravier"}
+
+  # Autres candidates (mélèzes visibles mais minoritaires ou lointains) :
+  #   https://www.skaping.com/les-menuires/clocher
+  #   https://www.skaping.com/serre-chevalier/saint-chaffrey
+  #   https://www.skaping.com/saintmartindebelleville/village
+  #   https://www.skaping.com/serrechevalier/coldulautaret
+  #   https://www.skaping.com/serre-chevalier/briancon
 
   # Exemple Windy (ID visible dans l'URL windy.com/webcams/<id>) :
   # - id: exemple-windy

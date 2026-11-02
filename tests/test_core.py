@@ -4,7 +4,7 @@ import numpy as np
 from PIL import Image
 
 from larch import analysis, phenology
-from larch.fetch import candidate_images_from_html
+from larch.fetch import FetchError, candidate_images_from_html, skaping_last_media, skaping_media_url
 from larch.store import DailyPoint
 
 
@@ -118,3 +118,35 @@ def test_bare_days_after_peak_mean_decline():
     assert phenology.stage(pts) == "pic"
     assert phenology.stage(pts, after) == "declin"
     assert phenology.observed_peak(pts, after) == date(2026, 9, 23)
+
+
+SKAPING_HTML = (
+    '{"camera_name":"Serre Chevalier - Cucumelle","player_url":"https:\\/\\/www.skaping.com\\/serre-chevalier\\/cucumelle",'
+    '"last_media":"https:\\/\\/skaping.s3.gra.io.cloud.ovh.net\\/serre-chevalier\\/cucumelle\\/2026\\/11\\/02\\/mini\\/15-41.jpg"},'
+    '"povs":{"2897":{"type_of_view":"photo - 360","is_online":true,'
+    '"player_url":"https:\\/\\/www.skaping.com\\/serre-chevalier\\/mea","player_id":"2940",'
+    '"last_media":"https:\\/\\/skaping.s3.gra.io.cloud.ovh.net\\/serre-chevalier\\/mea\\/2026\\/11\\/02\\/mini\\/15-50.jpg"},'
+    '"2907":{"type_of_view":"video - fixe","player_url":"https:\\/\\/www.skaping.com\\/serre-chevalier\\/mea\\/video",'
+    '"last_media":"https:\\/\\/skaping.s3.gra.io.cloud.ovh.net\\/serre-chevalier\\/mea\\/video\\/2026\\/11\\/02\\/15-45.jpg"}}'
+)
+
+
+def test_skaping_last_media_picks_the_right_view():
+    lm = skaping_last_media(SKAPING_HTML, "https://skaping.com/serre-chevalier/mea/")
+    assert lm == "https://skaping.s3.gra.io.cloud.ovh.net/serre-chevalier/mea/2026/11/02/mini/15-50.jpg"
+    lm = skaping_last_media(SKAPING_HTML, "http://www.skaping.com/serre-chevalier/mea/video")
+    assert lm.endswith("/mea/video/2026/11/02/15-45.jpg")
+    try:
+        skaping_last_media(SKAPING_HTML, "https://www.skaping.com/ailleurs/vue")
+    except FetchError:
+        pass
+    else:
+        raise AssertionError("vue inexistante non signalée")
+
+
+def test_skaping_media_url_quality():
+    lm = "https://h/serre-chevalier/mea/2026/11/02/mini/15-50.jpg"
+    assert skaping_media_url(lm, "large") == "https://h/serre-chevalier/mea/2026/11/02/large/15-50.jpg"
+    assert skaping_media_url(lm, "full") == "https://h/serre-chevalier/mea/2026/11/02/15-50.jpg"
+    video = "https://h/serre-chevalier/mea/video/2026/11/02/15-45.jpg"
+    assert skaping_media_url(video, "large") == video

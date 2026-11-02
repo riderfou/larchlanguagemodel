@@ -4,6 +4,7 @@ from __future__ import annotations
 import io
 import os
 import re
+import time
 from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import urljoin
@@ -145,13 +146,104 @@ def fetch_with_browser(url: str, selector: str | None = None, wait_ms: int = 600
             # (meilleure qualité qu'une capture d'écran).
             if info["tag"] == "img" and info["src"] and info["src"].startswith("http") \
                     and info["nw"] * info["nh"] >= MIN_PIXELS:
-                resp = page.request.get(info["src"], headers={"Referer": url})
-                if resp.ok:
-                    return _decode(resp.body(), info["src"])
+                try:
+                    resp = page.request.get(info["src"], headers={"Referer": url})
+                    if resp.ok:
+                        return _decode(resp.body(), info["src"])
+                except Exception:  # noqa: BLE001 - ex. proxy non pris en compte : on capture
+                    pass
             png = page.locator("[data-larch-target='1']").first.screenshot()
             return _decode(png, f"capture de {url}")
         finally:
             browser.close()
+
+
+# --- Skaping ---------------------------------------------------------------
+# Les pages Skaping (www.skaping.com/<lieu>/<vue>) embarquent, dans le HTML
+# brut, un JSON listant les vues (« povs ») avec leur dernière image :
+#   "player_url":"https://www.skaping.com/serre-chevalier/mea", ...
+#   "last_media":"https://skaping.s3.gra.io.cloud.ovh.net/serre-chevalier/mea/2026/11/02/mini/15-50.jpg"
+# Le segment de qualité (`mini`) se remplace par `small` (2730 px), `large`
+# (4096 px) ou se retire pour la pleine résolution (12288 px, ~3,5 Mo).
+# Si le stockage OVH ne répond pas, le lecteur Skaping bascule sur le domaine
+# de secours rvfbdt.skaping.com (mêmes chemins) : on fait pareil.
+
+SKAPING_QUALITIES = ("mini", "small", "large", "full")
+SKAPING_FALLBACK_HOST = "rvfbdt.skaping.com"
+_JSON_OBJ = re.compile(r"\{[^{}]*\}")
+
+
+def _norm_url(u: str) -> str:
+    return re.sub(r"^(https?:)?//(www\.)?", "", u.replace("\\/", "/")).rstrip("/").lower()
+
+
+def skaping_last_media(html: str, page_url: str) -> str:
+    """URL de la dernière image de la vue `page_url` dans le HTML d'une page Skaping."""
+    target = _norm_url(page_url)
+    found: list[tuple[str, str]] = []
+    for m in _JSON_OBJ.finditer(html):
+        obj = m.group(0)
+        pu = re.search(r'"player_url"\s*:\s*"([^"]+)"', obj)
+        lm = re.search(r'"last_media"\s*:\s*"([^"]+)"', obj)
+        if pu and lm:
+            found.append((_norm_url(pu.group(1)), lm.group(1).replace("\\/", "/")))
+    for pu, lm in found:
+        if pu == target:
+            return lm
+    raise FetchError(
+        f"Skaping : vue {page_url} introuvable dans la page "
+        f"({len(found)} vues listées : {', '.join(sorted({p for p, _ in found})[:5])}...)"
+    )
+
+
+def skaping_media_url(last_media: str, quality: str = "large") -> str:
+    if quality not in SKAPING_QUALITIES:
+        raise FetchError(f"Skaping : qualité inconnue {quality!r} ({', '.join(SKAPING_QUALITIES)})")
+    # Seules les vues « photo » ont un segment de qualité ; les vues vidéo
+    # (.../video/AAAA/MM/JJ/HH-MM.jpg) n'existent qu'en une taille.
+    m = re.match(r"(.*/\d{4}/\d{2}/\d{2}/)(?:mini|small|large)/([^/]+)$", last_media)
+    if not m:
+        return last_media
+    head, name = m.groups()
+    return head + ("" if quality == "full" else f"{quality}/") + name
+
+
+def fetch_skaping(url: str, quality: str = "large", retry_wait: float = 30.0) -> Image.Image:
+    r = _session().get(url, timeout=TIMEOUT)
+    r.raise_for_status()
+    media = skaping_media_url(skaping_last_media(r.text, url), quality)
+    if media.startswith("//"):
+        media = "https:" + media
+    errors = []
+    fallback = re.sub(r"^(https?://)[^/]+", r"\g<1>" + SKAPING_FALLBACK_HOST, media)
+    # Une image tout juste publiée peut ne pas être encore servie (403) :
+    # on réessaie une fois après une courte pause.
+    for attempt in range(2):
+        if attempt:
+            time.sleep(retry_wait)
+        for cand in (media, fallback):
+            try:
+                return fetch_image_url(cand, referer=url)
+            except Exception as e:  # noqa: BLE001
+                errors.append(f"{cand} : {e}")
+    raise FetchError("Skaping : image injoignable\n  " + "\n  ".join(errors))
+
+
+# --- webcam-hd (Skol) --------------------------------------------------------
+# app.webcam-hd.com/<groupe>/<vue> : l'API publique de la page donne l'URL du
+# dernier panorama (tailles small / 1080 / mega) hébergé sur
+# skol-webcams-archives.s3.fr-par.scw.cloud.
+
+
+def fetch_webcamhd(cam_id: str, quality: str = "1080") -> Image.Image:
+    api = f"https://app.webcam-hd.com/api/webcam/{cam_id}/{cam_id}/live-panorama"
+    r = _session().get(api, timeout=TIMEOUT)
+    r.raise_for_status()
+    live = (r.json() or {}).get("live") or {}
+    src = live.get(quality) or live.get("1080") or live.get("small")
+    if not src:
+        raise FetchError(f"webcam-hd {cam_id} : pas d'image dans {api}")
+    return fetch_image_url(src, referer="https://app.webcam-hd.com/")
 
 
 def fetch_windy(webcam_id: str | int) -> Image.Image:
@@ -182,6 +274,10 @@ def fetch_cam(cam: Cam, base_dir: Path | None = None) -> Image.Image:
         return fetch_from_page(src["url"])
     if kind == "browser":
         return fetch_with_browser(src["url"], src.get("selector"), int(src.get("wait_ms", 6000)))
+    if kind == "skaping":
+        return fetch_skaping(src["url"], src.get("quality", "large"))
+    if kind == "webcamhd":
+        return fetch_webcamhd(src["cam"], str(src.get("quality", "1080")))
     if kind == "windy":
         return fetch_windy(src["webcam_id"])
     if kind == "file":
