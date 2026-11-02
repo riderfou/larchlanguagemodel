@@ -105,13 +105,40 @@ const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt
 
 // --- Webcams ---------------------------------------------------------------
 const camLayer = L.layerGroup();
+const zoneLayer = L.layerGroup();
 const camBounds = [];
+const satLine = c => {
+  const s = c.satellite;
+  if (!s || !s.series || !s.series.length) return "";
+  const st = STAGES[s.stage] || STAGES.inconnu;
+  const last = s.series[s.series.length - 1];
+  return `<div style="margin-top:4px"><span class="sw" style="background:#3d7fc4"></span>Satellite
+    (mélèze à moins de ${s.radius_km} km) : <b style="color:${st[1]}">${esc(st[0])}</b>,
+    indice ${Math.round(last.gold_index)} le ${new Date(last.day).toLocaleDateString("fr-FR", {day: "numeric", month: "short"})}</div>`;
+};
 for (const c of CAMS) {
   if (c.lat == null) continue;
   const st = STAGES[c.stage] || STAGES.inconnu;
+  const gold = c.gold_index == null ? "—" : Math.round(c.gold_index);
+  if (c.kind === "satellite") {          // massif sans webcam, suivi par Sentinel-2
+    const s = c.satellite || {};
+    const z = L.marker([c.lat, c.lon], {icon: L.divIcon({className: "", iconSize: [16, 16],
+      html: `<div style="width:16px;height:16px;background:${st[1]};border:2.5px solid #fff;
+             box-shadow:0 0 0 1px rgba(0,0,0,.35);transform:rotate(45deg)"></div>`})});
+    z.bindPopup(`<h3>${esc(c.name)}</h3>
+      <div style="color:${st[1]};font-weight:600">${esc(st[0])}</div>
+      <div><span class="big">${gold}</span><span class="muted"> / 100 · indice d'or satellite</span></div>
+      <div>Pic : <b>${esc(c.peak)}</b> <span class="muted">(${esc(c.peak_source)})</span></div>
+      <div class="muted">Suivi Sentinel-2 : ${s.hectares ? fr.format(s.hectares) + " ha de mélèze dans un rayon de " + s.radius_km + " km" : ""}</div>
+      <div style="margin-top:6px"><a href="index.html#${encodeURIComponent(c.id)}">Voir la courbe →</a></div>`,
+      {maxWidth: 320});
+    z.bindTooltip(esc(c.name), {direction: "top", offset: [0, -10]});
+    z.addTo(zoneLayer);
+    camBounds.push([c.lat, c.lon]);
+    continue;
+  }
   const m = L.circleMarker([c.lat, c.lon], {radius: 9, weight: 2.5, color: "#fff",
     fillColor: st[1], fillOpacity: 1, pane: "markerPane"});
-  const gold = c.gold_index == null ? "—" : Math.round(c.gold_index);
   const near = (c.larch_nearby_ha == null ? "" :
     `<div class="muted">Mélèze pur à moins de ${NEARBY_KM} km : ${fr.format(c.larch_nearby_ha)} ha</div>`) +
     (c.sat_nearby_ha == null ? "" :
@@ -124,6 +151,7 @@ for (const c of CAMS) {
     <div><span class="big">${gold}</span><span class="muted"> / 100 · indice d'or</span></div>
     <div>Pic : <b>${esc(c.peak)}</b> <span class="muted">(${esc(c.peak_source)})</span></div>
     <div class="muted">Altitude des mélèzes visibles : ${Math.round(c.elevation)} m</div>
+    ${satLine(c)}
     ${near}
     <div style="margin-top:6px"><a href="index.html#${encodeURIComponent(c.id)}">Voir la fiche →</a></div>`,
     {maxWidth: 320});
@@ -132,6 +160,8 @@ for (const c of CAMS) {
   camBounds.push([c.lat, c.lon]);
 }
 camLayer.addTo(map);
+const HAS_ZONES = CAMS.some(c => c.kind === "satellite");
+if (HAS_ZONES) zoneLayer.addTo(map);
 if (camBounds.length) map.fitBounds(camBounds, {padding: [60, 60], maxZoom: 10});
 else map.setView([45.0, 6.6], 8);
 
@@ -191,7 +221,8 @@ const layers = L.control.layers(
                 "Forêt ouverte de conifères ≥ __MINZ__ m (mélèze possible)": ouverte} : {},
    {"Toutes formations forestières (BD Forêt V2)": foretV2,
    "Relief (ombrage)": relief,
-   "Webcams": camLayer}),
+   "Webcams": camLayer},
+   HAS_ZONES ? {"Massifs suivis par satellite": zoneLayer} : {}),
   {collapsed: window.matchMedia("(max-width: 640px)").matches}).addTo(map);
 // Les webcams toujours au-dessus des polygones
 map.on("overlayadd", () => camLayer.eachLayer(l => l.bringToFront && l.bringToFront()));
@@ -242,7 +273,7 @@ legend.onAdd = () => {
     <span class="sw" style="background:#f8e7bd;border:1px solid #d6b56a"></span>Forêt ouverte de conifères*<br>
     <span class="muted">* ≥ __MINZ__ m, mélèze possible</span><br>` : "") +
     (SAT ? `<span class="sw" style="background:#e8590c;border:1px solid #a8380b"></span>Détecté par satellite (${SAT.annee})<br>` : "") + `
-    <b style="margin-top:4px">Webcams</b>` +
+    <b style="margin-top:4px">Webcams ● · massifs suivis par satellite ◆</b>` +
     Object.entries(STAGES).filter(([k]) => CAMS.some(c => c.stage === k) || k !== "inconnu")
       .map(([, [label, color]]) => `<span class="sw dot" style="background:${color}"></span>${esc(label)}`).join("<br>") +
     "</details>";
@@ -291,8 +322,12 @@ def render_map(cams: list[dict], stages: dict, out_dir: Path, larch_geojson: Pat
         for c in cams:
             c["sat_nearby_ha"] = near.get(c["id"])
     keep = ("id", "name", "lat", "lon", "elevation", "stage", "gold_index", "peak", "peak_source",
-            "image", "larch_nearby_ha", "mixed_nearby_ha", "sat_nearby_ha")
-    payload = [{k: c.get(k) for k in keep} for c in cams]
+            "image", "larch_nearby_ha", "mixed_nearby_ha", "sat_nearby_ha", "kind")
+    for c in cams:      # satellite : sans la série complète (déjà dans latest.json)
+        s = c.get("satellite")
+        c["sat_light"] = s and {k: s[k] for k in ("stage", "hectares", "radius_km")} | {
+            "series": s["series"][-1:]}
+    payload = [{**{k: c.get(k) for k in keep}, "satellite": c.get("sat_light")} for c in cams]
 
     def js(obj) -> str:  # JSON sûr dans un <script>
         return json.dumps(obj, ensure_ascii=False).replace("</", "<\\/")

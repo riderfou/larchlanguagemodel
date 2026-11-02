@@ -177,6 +177,24 @@ cams:
   #     type: windy
   #     webcam_id: 1234567890
 
+# Suivi par satellite (Sentinel-2, `larch satsuivi`) : à chaque passage sans
+# nuages, indice d'or moyen des mélézins (carte Sentinel-2 + BD Forêt) autour
+# de chaque webcam (rayon `radius_km`) et dans les massifs ci-dessous, qui
+# n'ont pas de webcam. Mêmes stades et même date de pic que pour les webcams.
+satellite:
+  radius_km: 4
+  zones:
+    - {id: claree, name: "Vallée de la Clarée (Névache)", lat: 45.020, lon: 6.600}
+    - {id: vallouise, name: "Vallouise (Pelvoux)", lat: 44.870, lon: 6.480}
+    - {id: champsaur, name: "Champsaur (St-Léger-les-Mélèzes)", lat: 44.630, lon: 6.220}
+    - {id: haute-ubaye, name: "Haute-Ubaye (Larche, Meyronnes)", lat: 44.450, lon: 6.800}
+    - {id: ubaye-praloup, name: "Ubaye (Pra-Loup, Le Sauze)", lat: 44.370, lon: 6.620}
+    - {id: haut-verdon, name: "Haut-Verdon (Allos)", lat: 44.240, lon: 6.630}
+    - {id: haute-tinee, name: "Haute-Tinée (St-Étienne-de-Tinée)", lat: 44.260, lon: 6.920}
+    - {id: queyras-abries, name: "Queyras (Abriès, Ristolas)", lat: 44.790, lon: 6.930}
+    - {id: haute-maurienne-termignon, name: "Haute-Maurienne (Termignon)", lat: 45.270, lon: 6.840}
+    - {id: haute-tarentaise, name: "Haute-Tarentaise (Les Brévières)", lat: 45.500, lon: 6.920}
+
 # Réglages de l'analyse
 settings:
   # Seules les images prises dans cette plage horaire (heure locale) sont

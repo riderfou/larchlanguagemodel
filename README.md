@@ -38,6 +38,7 @@ Autres commandes :
 | `larch calibrate` | ajuste le modèle de prévision sur les pics observés |
 | `larch foret` | (re)télécharge les mélézins de la BD Forêt V2 pour la carte |
 | `larch satellite` | cartographie les mélézins par Sentinel-2 (~1 h, une fois par automne) |
+| `larch satsuivi` | indice d'or Sentinel-2 des mélézins à chaque passage (webcams et massifs) |
 
 ## Configurer les webcams (`cams.yaml`)
 
@@ -210,6 +211,54 @@ l'apprentissage sans tout retélécharger. Domaines contactés :
 `e84-earth-search-sentinel-data.s3.us-west-2.amazonaws.com`,
 `esa-worldcover.s3.eu-central-1.amazonaws.com`,
 `copernicus-dem-30m.s3.amazonaws.com`, `data.geopf.fr`.
+
+## Suivi de la coloration par satellite, en complément des webcams
+
+`larch satsuivi` reprend la carte des mélézins (détection Sentinel-2 et mélèze
+pur de la BD Forêt) comme masque. À chaque passage de Sentinel-2 (tous les
+2 à 3 jours avec les trois satellites), il mesure la coloration dans deux sortes
+de zones :
+
+- **autour de chaque webcam**, sur le mélèze à moins de 4 km (`satellite.radius_km`) :
+  la courbe satellite s'affiche sur la fiche de la webcam (carrés bleus), avec
+  son stade et l'écart moyen entre webcam et satellite les jours communs, ce qui
+  permet de contrôler l'une par l'autre ;
+- **dans des massifs sans webcam** (`satellite.zones` dans `cams.yaml` : Clarée,
+  Vallouise, Champsaur, Ubaye, Haut-Verdon, Haute-Tinée, Queyras, Haute-Maurienne,
+  Haute-Tarentaise) : fiches « Massifs suivis par satellite » et losanges sur la
+  carte.
+
+**Indice d'or satellite.** Pour chaque pixel de mélèze sans nuage, ni neige, ni
+ombre du relief, on mesure le jaunissement, c'est-à-dire la hausse de
+(rouge − vert)/(rouge + vert) par rapport à une image d'été du même pixel.
+Corrections et filtres :
+
+- **Témoins.** On soustrait le jaunissement des conifères persistants voisins
+  (épicéas, sapins, pins de la BD Forêt, à moins de 8 km, sur la même image). En
+  octobre, le soleil bas et l'atmosphère rougissent toutes les forêts sur
+  l'image ; sans cette correction, une pessière « jaunirait » presque autant qu'un
+  mélézin.
+- **Zéro de septembre.** La valeur médiane du 1er au 15 septembre, quand le
+  mélèze est encore vert partout, est soustraite pour chaque zone. Elle vient de
+  l'herbe qui sèche sous les mélézins clairs.
+- **Échelle.** 100 correspond à un jaunissement de 0,12 en plus de celui des
+  témoins, calé sur les courbes de 2026 (Vars, Clarée, Queyras…).
+- **Chute des aiguilles.** Le NDVI du mélèze rapporté à l'été (et à celui des
+  témoins) s'effondre quand les aiguilles tombent. En dessous de 40 % d'aiguilles,
+  le jour compte comme « sans aiguilles », l'équivalent des images sans végétation
+  colorée des webcams, ce qui déclenche le stade « déclin ».
+- **Filtres.** On écarte une image quand moins de 20 % du mélèze est visible, en
+  cas de voile léger (NDVI des témoins à moins de 95 % ou plus de 115 % de l'été,
+  ou luminosité anormale), et pour un point isolé à plus de 30 points de ses
+  voisins.
+
+Les mesures vont dans `data/satellite_history.csv`, au même format que
+l'historique des webcams. Stades, lissage, ajustement logistique et date du pic
+sont donc calculés exactement de la même façon. Le workflow interroge les
+nouveaux passages à chaque exécution : seules les fenêtres des zones sont lues,
+ce qui prend quelques secondes par passage.
+
+__RESULTATS_SUIVI__
 
 ## Automatisation (GitHub Actions + GitHub Pages)
 

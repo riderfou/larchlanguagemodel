@@ -1,4 +1,4 @@
-"""Ligne de commande : larch fetch | report | run | analyze | roi | calibrate | foret | satellite."""
+"""Ligne de commande : larch fetch | report | run | analyze | roi | calibrate | foret | satellite | satsuivi."""
 from __future__ import annotations
 
 import argparse
@@ -14,12 +14,14 @@ from PIL import Image, ImageDraw
 from . import analysis, phenology, store, weather
 from .config import Cam, Config, load_config
 from .fetch import fetch_cam
-from .report import CamReport, render
+from .report import CamReport, SatInfo, render
 
 ARCHIVE_WIDTH = 800
 LARCH_GEOJSON = "meleze_bdforet_v2.geojson"   # dans le dossier data/ (voir `larch foret`)
 MIXED_GEOJSON = "coniferes_altitude_bdforet_v2.geojson"
 SATELLITE_GEOJSON = "meleze_sentinel2.geojson"
+SAT_HISTORY = "satellite_history.csv"
+SAT_ZONES = "satellite_zones.json"
 
 
 def _now(cfg: Config) -> datetime:
@@ -133,7 +135,41 @@ def build_reports(cfg: Config, args) -> list[CamReport]:
                 rep.notes.append(f"météo indisponible : {e}")
                 print(f"[{cam.id}] météo indisponible : {e}", file=sys.stderr)
         reports.append(rep)
+    _add_satellite(cfg, data, reports, start)
     return reports
+
+
+def _sat_info(rows: list[dict], key: str, start: date, meta: dict) -> SatInfo:
+    from . import satsuivi
+    pts, _ = satsuivi.daily_points(rows, key)
+    pts = [p for p in pts if p.day >= start]
+    keep, bare = satsuivi.split_bare(pts)
+    return SatInfo(points=keep, bare=bare, stage=phenology.stage(keep, bare),
+                   fit=phenology.fit_logistic(keep), observed_peak=phenology.observed_peak(keep, bare),
+                   hectares=meta.get("hectares"), radius_km=meta.get("radius_km"))
+
+
+def _add_satellite(cfg: Config, data: Path, reports: list[CamReport], start: date) -> None:
+    """Courbes Sentinel-2 : autour de chaque webcam, et massifs sans webcam (fiches à part)."""
+    hist = data / SAT_HISTORY
+    if not hist.exists() or not cfg.satellite:
+        return
+    from . import satsuivi
+    rows = store.load(hist)
+    meta = json.loads((data / SAT_ZONES).read_text()) if (data / SAT_ZONES).exists() else {}
+    for z in satsuivi.zones_from_config(cfg):
+        m = meta.get(z.id, {"radius_km": z.radius_km})
+        si = _sat_info(rows, z.key, start, m)
+        if z.cam_id:
+            rep = next((r for r in reports if r.id == z.cam_id), None)
+            if rep:
+                si.comparison = satsuivi.compare(rep.points, si.points)
+                rep.sat = si
+            continue
+        reports.append(CamReport(
+            id=z.id, name=z.name, elevation=float(m.get("elevation") or 0), stage=si.stage,
+            points=si.points, fit=si.fit, observed_peak=si.observed_peak,
+            lat=z.lat, lon=z.lon, kind="satellite", sat=si))
 
 
 def cmd_report(cfg: Config, args) -> int:
@@ -205,6 +241,29 @@ def cmd_satellite(cfg: Config, args) -> int:
     out.write_text(json.dumps(fc, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     print(f"→ {out} : {len(feats)} zones, {sum(f['properties']['ha'] for f in feats):.0f} ha, "
           f"{out.stat().st_size / 1e6:.1f} Mo")
+    return 0
+
+
+def cmd_satsuivi(cfg: Config, args) -> int:
+    """Indice d'or Sentinel-2 des mélézins, à chaque passage, autour des webcams et des massifs."""
+    from . import satsuivi
+    data = Path(args.data)
+    today = _now(cfg).date()
+    since = date.fromisoformat(args.since) if args.since else date(today.year, 9, 1)
+    until = date.fromisoformat(args.until) if args.until else today
+    zones = satsuivi.zones_from_config(cfg)
+    if args.zone:
+        zones = [z for z in zones if z.id in args.zone.split(",")]
+    masks = satsuivi.build_masks(zones, since.year, [data / SATELLITE_GEOJSON, data / LARCH_GEOJSON],
+                                 cache=Path(args.cache))
+    meta = json.loads((data / SAT_ZONES).read_text()) if (data / SAT_ZONES).exists() else {}
+    for zm in masks:
+        meta[zm.zone.id] = {"hectares": round(zm.hectares), "radius_km": zm.zone.radius_km,
+                            "temoins_ha": round(float(zm.ref.sum()) * 0.04), "tuile": zm.tile,
+                            "ete": zm.summer_date}
+    (data / SAT_ZONES).write_text(json.dumps(meta, ensure_ascii=False, indent=1), encoding="utf-8")
+    n = satsuivi.update(masks, since, until, data / SAT_HISTORY, cfg.settings.timezone)
+    print(f"→ {data / SAT_HISTORY} : {n} mesure(s) ajoutée(s)")
     return 0
 
 
@@ -318,6 +377,11 @@ def main(argv: list[str] | None = None) -> int:
     sa.add_argument("--tiles", help="tuiles Sentinel-2, ex. 31TGL,32TLR (défaut : Alpes françaises)")
     sa.add_argument("--autumn-dates", type=int, default=4, help="nombre d'images d'automne par tuile")
     sa.add_argument("--cache", default=".cache/sentinel2", help="variables par tuile (~2 Go chacune)")
+    ss = sub.add_parser("satsuivi", help="indice d'or Sentinel-2 des mélézins à chaque passage")
+    ss.add_argument("--since", help="AAAA-MM-JJ (défaut : 1er septembre)")
+    ss.add_argument("--until", help="AAAA-MM-JJ (défaut : aujourd'hui)")
+    ss.add_argument("--zone", help="zones à traiter, ex. bessans-relais,claree")
+    ss.add_argument("--cache", default=".cache/satsuivi", help="masques des zones")
     c = sub.add_parser("calibrate", help="ajuste le modèle sur les pics observés")
     c.add_argument("--cam")
 
@@ -325,7 +389,7 @@ def main(argv: list[str] | None = None) -> int:
     cfg = load_config(args.config)
     return {"fetch": cmd_fetch, "report": cmd_report, "run": cmd_run, "analyze": cmd_analyze,
             "roi": cmd_roi, "calibrate": cmd_calibrate, "foret": cmd_foret,
-            "satellite": cmd_satellite}[args.cmd](cfg, args)
+            "satellite": cmd_satellite, "satsuivi": cmd_satsuivi}[args.cmd](cfg, args)
 
 
 if __name__ == "__main__":

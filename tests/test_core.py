@@ -295,3 +295,93 @@ def test_vectorize_keeps_stands_and_drops_specks():
     assert len(feats) == 1
     assert 11 < feats[0]["properties"]["ha"] < 13
     assert feats[0]["properties"]["p"] == 95 and feats[0]["properties"]["z"] == 1900
+
+
+# --- Suivi satellite (hors ligne) ---------------------------------------------
+
+def _zone_mask(rg_summer=-0.10, ndvi_summer=0.80, n=40):
+    from larch import satsuivi
+    from larch.sentinel import Grid
+    from affine import Affine
+    z = satsuivi.Zone("z", "Zone", 45.0, 6.5, 4.0)
+    mask = np.zeros((n, n), bool); mask[:, : n // 2] = True       # mélèze à gauche
+    ref = np.zeros((n, n), bool); ref[:, n // 2:] = True           # témoins à droite
+    return satsuivi.ZoneMask(z, "32TLR", (0, 0, n, n), Grid("EPSG:32632", Affine.identity(), n, n),
+                             mask, ref, np.full((n, n), rg_summer, np.float32),
+                             np.full((n, n), ndvi_summer, np.float32), "2026-07-24")
+
+
+def _bands(n, larch_rg, ref_rg, larch_ndvi=0.8, ref_ndvi=0.8):
+    """Réflectances donnant les (R-G)/(R+G) et NDVI voulus à gauche (mélèze) et à droite."""
+    out = {k: np.zeros((n, n), np.float32) for k in ("red", "green", "blue", "nir")}
+    for sl, rg, nd in ((np.s_[:, : n // 2], larch_rg, larch_ndvi), (np.s_[:, n // 2:], ref_rg, ref_ndvi)):
+        g = 0.08
+        r = g * (1 + rg) / (1 - rg)
+        out["green"][sl], out["red"][sl], out["blue"][sl] = g, r, 0.04
+        out["nir"][sl] = r * (1 + nd) / (1 - nd)
+    return out
+
+
+def test_measure_subtracts_evergreen_drift():
+    from larch import satsuivi
+    zm = _zone_mask()
+    # tout rougit de 0,03 (soleil bas), le mélèze de 0,03 + 0,06 de plus
+    m = satsuivi.measure(zm, _bands(40, -0.10 + 0.09, -0.10 + 0.03))
+    assert m["valid"] == 1
+    assert abs(m["delta_meleze"] - 0.09) < 1e-3 and abs(m["delta_temoins"] - 0.03) < 1e-3
+    assert abs(m["gold_index"] - 0.06 / satsuivi.GOLD_DELTA * 100) < 1
+
+
+def test_measure_rejects_clouds_and_haze():
+    from larch import satsuivi
+    zm = _zone_mask()
+    b = _bands(40, -0.05, -0.10)
+    b["red"][:, :18] = np.nan                      # 90 % du mélèze sous les nuages
+    assert satsuivi.measure(zm, b)["reason"].startswith("nuages")
+    hazy = _bands(40, -0.05, -0.10, ref_ndvi=0.55)  # témoins à 69 % de leur NDVI d'été
+    assert satsuivi.measure(zm, hazy)["reason"].startswith("voile")
+
+
+def _sat_rows(series):
+    rows = []
+    for day, d_larch, ratio in series:
+        rows.append({"cam": "s2:z", "valid": "1", "timestamp": f"{day}T12:38", "delta_meleze": str(d_larch),
+                     "delta_temoins": "0.0", "n_ref": "500", "ndvi_ratio_temoins": "1.0",
+                     "veg_share": str(__import__("larch.satsuivi", fromlist=["x"]).veg_share(ratio)),
+                     "gcc": "0.4", "mean_rgb": "#888888", "brightness": "0.04"})
+    return rows
+
+
+def test_daily_points_baseline_peak_and_needle_drop():
+    from larch import phenology, satsuivi
+    D = satsuivi.GOLD_DELTA
+    series = [("2026-09-02", 0.02, 0.97), ("2026-09-07", 0.02, 0.96), ("2026-09-12", 0.02, 0.97),
+              ("2026-10-02", 0.02 + 0.3 * D, 0.9), ("2026-10-07", 0.02 + 0.5 * D, 0.85),
+              ("2026-10-12", 0.02 + 0.8 * D, 0.8), ("2026-10-17", 0.02 + 1.0 * D, 0.75),
+              ("2026-10-24", 0.02 + 1.2 * D, 0.6), ("2026-10-27", 0.02 + 1.3 * D, 0.62),
+              ("2026-10-30", 0.02 + 1.5 * D, 0.62), ("2026-11-01", 0.02 + 1.5 * D, 0.62)]
+    pts, base = satsuivi.daily_points(_sat_rows(series), "s2:z")
+    assert base == 0.02 and pts[0].gold_index == 0                 # zéro de début septembre
+    assert [p.gold_index for p in pts][3:6] == [30, 50, 80]
+    keep, bare = satsuivi.split_bare(pts)
+    assert len(bare) == 4                                          # aiguilles tombées (NDVI)
+    assert phenology.stage(keep, bare) == "declin"
+
+
+def test_daily_points_drops_isolated_outlier():
+    from larch import satsuivi
+    D = satsuivi.GOLD_DELTA
+    series = [("2026-09-02", 0.0, 0.97), ("2026-09-05", 0.7 * D, 0.97), ("2026-09-08", 0.0, 0.97),
+              ("2026-09-10", 0.0, 0.97)]
+    pts, _ = satsuivi.daily_points(_sat_rows(series), "s2:z")
+    assert [p.day.day for p in pts] == [2, 8, 10]
+
+
+def test_compare_webcam_and_satellite():
+    from datetime import date as _d
+    from larch.satsuivi import compare
+    from larch.store import DailyPoint
+    cam = [DailyPoint(_d(2026, 10, d), v, 1, 0.4, "#888", 1) for d, v in ((10, 40), (11, 50), (15, 80))]
+    sat = [DailyPoint(_d(2026, 10, d), v, 1, 0.4, "#888", 1) for d, v in ((12, 40), (15, 70), (25, 90))]
+    k = compare(cam, sat)
+    assert k == {"jours": 2, "ecart_moyen": 10.0, "ecart_absolu": 10.0}

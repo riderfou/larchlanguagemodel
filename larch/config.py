@@ -42,6 +42,8 @@ class Cam:
 class Config:
     cams: list[Cam]
     settings: Settings
+    # Suivi Sentinel-2 : {"radius_km": 4, "zones": [{id, name, lat, lon, radius_km?}, ...]}
+    satellite: dict[str, Any] = field(default_factory=dict)
 
     def cam(self, cam_id: str) -> Cam:
         for c in self.cams:
@@ -96,4 +98,4 @@ def load_config(path: str | Path = "cams.yaml") -> Config:
             peak_threshold=float(f.get("peak_threshold", 45.0)),
         ),
     )
-    return Config(cams=cams, settings=settings)
+    return Config(cams=cams, settings=settings, satellite=dict(data.get("satellite") or {}))

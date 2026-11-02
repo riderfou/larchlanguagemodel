@@ -27,12 +27,26 @@ jobs:
           cache: pip
       - name: Installation
         run: |
-          pip install -e '.[browser]'
+          pip install -e '.[browser,satellite]'
           playwright install --with-deps chromium
-      - name: Relevé des webcams + page
+      - name: Relevé des webcams
         env:
           WINDY_API_KEY: ${{ secrets.WINDY_API_KEY }}
-        run: larch run
+        run: larch fetch
+      # Masques des zones suivies par satellite (recalculés une fois par an)
+      - uses: actions/cache@v4
+        with:
+          path: .cache/satsuivi
+          # Nouvelle clé à chaque exécution (les masques changent d'une année à l'autre),
+          # restaurée depuis la plus récente.
+          key: satsuivi-${{ hashFiles('cams.yaml', 'data/meleze_sentinel2.geojson') }}-${{ github.run_id }}
+          restore-keys: satsuivi-${{ hashFiles('cams.yaml', 'data/meleze_sentinel2.geojson') }}-
+      - name: Suivi Sentinel-2 (nouveaux passages)
+        # Une panne côté satellite ne doit pas empêcher la publication de la page.
+        continue-on-error: true
+        run: larch satsuivi
+      - name: Page
+        run: larch report
       - name: Sauvegarde de l'historique
         run: |
           git config user.name "larch-meteo"

@@ -20,6 +20,48 @@ def fr_date(d: date | None) -> str:
 
 
 @dataclass
+class SatInfo:
+    """Suivi Sentinel-2 d'une zone (autour d'une webcam ou massif sans webcam)."""
+    points: list[DailyPoint]
+    bare: list[date]
+    stage: str
+    fit: LogisticFit | None = None
+    observed_peak: date | None = None
+    hectares: float | None = None
+    radius_km: float | None = None
+    comparison: dict | None = None      # écart webcam - satellite (jours communs)
+
+    @property
+    def gold(self) -> float | None:
+        return self.points[-1].gold_index if self.points else None
+
+    def peak_summary(self) -> tuple[str, str]:
+        return peak_text(self.observed_peak, self.fit, None)
+
+    def to_json(self) -> dict:
+        peak, src = self.peak_summary()
+        return {"stage": self.stage, "stage_label": STAGES[self.stage][0], "gold_index": self.gold,
+                "last_day": self.points[-1].day.isoformat() if self.points else None,
+                "peak": peak, "peak_source": src, "hectares": self.hectares, "radius_km": self.radius_km,
+                "comparison": self.comparison,
+                "series": [{"day": p.day.isoformat(), "gold_index": p.gold_index,
+                            "veg_share": p.veg_share} for p in self.points]}
+
+
+def peak_text(observed: date | None, fit: LogisticFit | None, cold: ColdModel | None) -> tuple[str, str]:
+    """(date du pic, provenance)"""
+    if observed:
+        return fr_date(observed), "pic observé"
+    if fit:
+        rng = "" if fit.peak_min == fit.peak_max else f" ({fr_date(fit.peak_min)} – {fr_date(fit.peak_max)})"
+        return fr_date(fit.peak) + rng, "d'après l'évolution observée"
+    if cold and cold.peak:
+        src = "modèle froid cumulé" + (" + tendance saisonnière" if cold.extrapolated else "")
+        return "vers le " + fr_date(cold.peak), src
+    return "—", "pas encore assez de données"
+
+
+@dataclass
 class CamReport:
     id: str
     name: str
@@ -37,6 +79,8 @@ class CamReport:
     notes: list[str] = field(default_factory=list)
     lat: float | None = None
     lon: float | None = None
+    kind: str = "webcam"                # "webcam" ou "satellite" (massif sans webcam)
+    sat: SatInfo | None = None
 
     @property
     def gold(self) -> float | None:
@@ -44,22 +88,14 @@ class CamReport:
 
     def peak_summary(self) -> tuple[str, str]:
         """(date du pic, provenance)"""
-        if self.observed_peak:
-            return fr_date(self.observed_peak), "pic observé"
-        if self.fit:
-            f = self.fit
-            rng = "" if f.peak_min == f.peak_max else f" ({fr_date(f.peak_min)} – {fr_date(f.peak_max)})"
-            return fr_date(f.peak) + rng, "d'après l'évolution observée"
-        if self.cold and self.cold.peak:
-            src = "modèle froid cumulé" + (" + tendance saisonnière" if self.cold.extrapolated else "")
-            return "vers le " + fr_date(self.cold.peak), src
-        return "—", "pas encore assez de données"
+        return peak_text(self.observed_peak, self.fit, self.cold)
 
     def to_json(self) -> dict:
         peak, src = self.peak_summary()
         return {
             "id": self.id, "name": self.name, "stage": self.stage,
             "lat": self.lat, "lon": self.lon, "elevation": self.elevation, "image": self.image,
+            "kind": self.kind, "satellite": self.sat.to_json() if self.sat else None,
             "stage_label": STAGES[self.stage][0], "gold_index": self.gold,
             "peak": peak, "peak_source": src,
             "observed_peak": self.observed_peak.isoformat() if self.observed_peak else None,
@@ -73,7 +109,8 @@ class CamReport:
 
 
 def _sparkline(c: CamReport, today: date, w: int = 320, h: int = 90) -> str:
-    start = min([p.day for p in c.points] + [today - timedelta(days=30)])
+    sat = c.sat.points if (c.sat and c.kind == "webcam") else []
+    start = min([p.day for p in c.points] + [p.day for p in sat] + [today - timedelta(days=30)])
     end = max(today + timedelta(days=10), c.fit.peak + timedelta(days=5) if c.fit else today)
     span = max((end - start).days, 1)
     X = lambda d: 4 + (w - 8) * (d - start).days / span  # noqa: E731
@@ -95,6 +132,10 @@ def _sparkline(c: CamReport, today: date, w: int = 320, h: int = 90) -> str:
             parts.append(f'<circle cx="{X(p.day):.1f}" cy="{Y(p.gold_index):.1f}" r="2.2" '
                          f'fill="{html.escape(p.mean_rgb)}" class="dot"><title>{fr_date(p.day)} : '
                          f'{p.gold_index:.0f}</title></circle>')
+    for p in sat:   # satellite autour de la webcam : petits carrés
+        parts.append(f'<rect x="{X(p.day) - 2.2:.1f}" y="{Y(p.gold_index) - 2.2:.1f}" width="4.4" '
+                     f'height="4.4" class="sat"><title>Satellite, {fr_date(p.day)} : '
+                     f'{p.gold_index:.0f}</title></rect>')
     xt = X(today)
     parts.append(f'<line x1="{xt:.1f}" x2="{xt:.1f}" y1="4" y2="{h-14}" class="today"/>')
     parts.append(f'<text x="{xt:.1f}" y="{h-2}" class="lbl" text-anchor="middle">auj.</text>')
@@ -135,6 +176,8 @@ def _card(c: CamReport, today: date) -> str:
         warn = f'<p class="warn">Image indisponible : {e(c.error)}</p>'
     elif c.last and not c.last.get("valid"):
         warn = f'<p class="warn">Dernière image inexploitable : {e(c.last.get("reason", ""))}</p>'
+    if c.kind == "satellite":
+        return _sat_card(c, today)
     when = f"mis à jour {c.last_time:%d/%m %H:%M}" if c.last_time else ""
     swatch = c.points[-1].mean_rgb if c.points else "#888"
     return f"""
@@ -151,14 +194,63 @@ def _card(c: CamReport, today: date) -> str:
     <div class="peak"><span class="muted">Pic des couleurs</span><b>{peak}</b><small>{e(src)}</small></div>
     {outlook}
     {_sparkline(c, today)}
+    {_sat_block(c)}
     {cold}{warn}
+  </div>
+</article>"""
+
+
+def _sat_block(c: CamReport) -> str:
+    """Satellite autour d'une webcam : stade, dernier indice, écart avec la webcam."""
+    si = c.sat
+    if not si:
+        return ""
+    e = html.escape
+    if not si.points:
+        return ('<p class="satline muted"><span class="satkey"></span>Satellite : '
+                'pas encore de passage sans nuages sur les mélèzes voisins</p>')
+    label, color = STAGES[si.stage]
+    last = si.points[-1]
+    cmp = ""
+    if si.comparison:
+        k = si.comparison
+        sign = "+" if k["ecart_moyen"] > 0 else ""
+        cmp = (f'<br>Webcam − satellite : {sign}{k["ecart_moyen"]:.0f} points en moyenne '
+               f'(± {k["ecart_absolu"]:.0f}) sur {k["jours"]} jour{"s" if k["jours"] > 1 else ""} communs')
+    peak, src = si.peak_summary()
+    return (f'<p class="satline muted"><span class="satkey"></span>Satellite, mélèze à moins de '
+            f'{si.radius_km:g} km : <b style="color:{color}">{e(label)}</b>, indice {last.gold_index:.0f} '
+            f'le {fr_date(last.day)} · pic {e(peak)}{cmp}</p>')
+
+
+def _sat_card(c: CamReport, today: date) -> str:
+    """Massif sans webcam, suivi par Sentinel-2."""
+    e = html.escape
+    si = c.sat
+    label, color = STAGES[c.stage]
+    peak, src = c.peak_summary()
+    gold = "—" if c.gold is None else f"{c.gold:.0f}"
+    swatch = c.points[-1].mean_rgb if c.points else "#888"
+    last = f"dernier passage exploitable : {fr_date(c.points[-1].day)}" if c.points else "aucun passage exploitable"
+    ha = f"{si.hectares:.0f} ha de mélèze suivis" if si and si.hectares else ""
+    return f"""
+<article class="card sat" id="{e(c.id)}">
+  <div class="body">
+    <header><h2>{e(c.name)}</h2><span class="muted">Sentinel-2 · {ha} · {last}</span></header>
+    <div class="now">
+      <span class="swatch" style="background:{e(swatch)}"></span>
+      <div><div class="stage" style="--c:{color}">{label}</div>
+      <div class="muted">indice d'or <b class="big">{gold}</b>/100</div></div>
+    </div>
+    <div class="peak"><span class="muted">Pic des couleurs</span><b>{peak}</b><small>{e(src)}</small></div>
+    {_sparkline(c, today)}
   </div>
 </article>"""
 
 
 CSS = """
 :root{--bg:#f6f3ec;--card:#fff;--fg:#1f2421;--muted:#6b706b;--line:#e3ded2;
---g:#3f8f3a;--y:#f2c230;--o:#e8771e;--accent:#c9861a}
+--g:#3f8f3a;--y:#f2c230;--o:#e8771e;--accent:#c9861a;--sat:#3d7fc4}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#151815;--card:#1f231f;
 --fg:#ecebe6;--muted:#9da39b;--line:#333a33}}
 :root[data-theme="dark"]{--bg:#151815;--card:#1f231f;--fg:#ecebe6;--muted:#9da39b;--line:#333a33}
@@ -191,8 +283,21 @@ border:1px solid var(--line);border-radius:8px;padding:4px;font-size:.8rem}
 stroke-dasharray:4 3;stroke-width:1.2}.spark .today{stroke:var(--muted);stroke-width:.8}
 .spark .lbl{font-size:9px;fill:var(--muted)}.spark .dot{stroke:var(--card);stroke-width:.6}
 .warn{color:#b3541e;font-size:.85rem;margin:8px 0 0}
+.spark .sat{fill:var(--sat);stroke:var(--card);stroke-width:.6}
+.satline{font-size:.82rem;margin:8px 0 0;line-height:1.45}
+.satkey{display:inline-block;width:8px;height:8px;background:var(--sat);margin-right:6px;vertical-align:0}
+.card.sat{border-style:dashed}h2.section{font-size:1.2rem;margin:34px 0 4px}
 footer{margin-top:28px;font-size:.85rem;color:var(--muted)}
 """
+
+
+def _zones_section(zones: list[CamReport], today: date) -> str:
+    if not zones:
+        return ""
+    return (f'<h2 class="section">Massifs suivis par satellite</h2>'
+            f'<p class="muted">Sans webcam : indice d\'or des mélézins mesuré sur les images '
+            f'Sentinel-2 sans nuages, mêmes stades et même date de pic que pour les webcams.</p>'
+            f'<section class="grid">{"".join(_card(z, today) for z in zones)}</section>')
 
 
 def render(cams: list[CamReport], generated: datetime, out_dir: Path,
@@ -200,6 +305,8 @@ def render(cams: list[CamReport], generated: datetime, out_dir: Path,
            sat_geojson: Path | None = None) -> Path:
     today = generated.date()
     out_dir.mkdir(parents=True, exist_ok=True)
+    zones = [c for c in cams if c.kind == "satellite"]
+    cams_all, cams = cams, [c for c in cams if c.kind != "satellite"]
     ranked = sorted((c for c in cams if c.gold is not None and c.stage != "declin"),
                     key=lambda c: -c.gold)
     pills = []
@@ -221,14 +328,18 @@ def render(cams: list[CamReport], generated: datetime, out_dir: Path,
 · <a href="carte.html">Carte des mélézins →</a></p>
 <div class="top">{''.join(pills)}</div>
 <section class="grid">{''.join(_card(c, today) for c in cams)}</section>
+{_zones_section(zones, today)}
 <footer>Indice d'or = part des aiguilles jaunes/orangées parmi les aiguilles colorées visibles
 (0 : tout vert, 100 : tout doré). Survoler une image montre la classification des pixels.
-Courbe pleine : mesures journalières ; pointillés : tendance ajustée.
+Courbe pleine : mesures journalières ; pointillés : tendance ajustée ; carrés bleus : satellite.
+Satellite (Sentinel-2, un passage tous les 2-3 jours) : jaunissement des pixels de mélèze par
+rapport à l'été, corrigé par les épicéas et pins voisins, ramené à 0 début septembre ; la chute
+des aiguilles se lit dans la baisse de leur NDVI.
 Prévisions indicatives : éclairage, neige et nuages influencent les mesures.</footer>
 </main></body></html>"""
     path = out_dir / "index.html"
     path.write_text(doc, encoding="utf-8")
-    cams_json = [c.to_json() for c in cams]
+    cams_json = [c.to_json() for c in cams_all]
     (out_dir / "latest.json").write_text(json.dumps(
         {"generated": generated.isoformat(timespec="minutes"),
          "cams": cams_json}, ensure_ascii=False, indent=1), encoding="utf-8")

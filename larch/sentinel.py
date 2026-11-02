@@ -88,6 +88,7 @@ class Scene:
     cloud: float
     snow: float
     nodata: float
+    time: str = ""     # date et heure UTC du passage (ISO 8601)
 
     def url(self, band: str) -> str:
         return f"{S2_BUCKET}/{self.prefix}{band}.tif"
@@ -105,7 +106,8 @@ def list_scenes(tile: str, year: int, months: list[int]) -> list[Scene]:
         name = pre.rstrip("/").rsplit("/", 1)[-1]
         p = requests.get(f"{S2_BUCKET}/{pre}{name}.json", timeout=60).json()["properties"]
         return Scene(tile, p["datetime"][:10], pre, p.get("eo:cloud_cover", 100.0),
-                     p.get("s2:snow_ice_percentage", 0.0), p.get("s2:nodata_pixel_percentage", 0.0))
+                     p.get("s2:snow_ice_percentage", 0.0), p.get("s2:nodata_pixel_percentage", 0.0),
+                     p["datetime"])
 
     with ThreadPoolExecutor(8) as ex:
         return sorted(ex.map(meta, prefixes), key=lambda s: s.date)
