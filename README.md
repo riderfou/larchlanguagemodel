@@ -172,7 +172,30 @@ conifères : **vert en été, doré en octobre, puis sans aiguilles**.
    d'ESA WorldCover), les zones d'au moins 0,5 ha sont vectorisées dans
    `data/meleze_sentinel2.geojson` (couche orange de la carte).
 
-__RESULTATS__
+**Résultats (automne 2026)** : 19 300 zones, environ **243 000 ha** de
+mélèze détecté (contre 99 000 ha de mélèze pur dans la BD Forêt). Images
+d'été du 7 juillet au 23 août, d'automne du 5 octobre au 1er novembre selon
+les tuiles. Validation sur les blocs écartés, dans les proportions réelles :
+
+| Seuil | Précision | Rappel | Fausses alarmes sapin/épicéa |
+|---|---|---|---|
+| **0,5 (retenu)** | **90 %** | **82 %** | 2,0 % |
+| 0,7 | 95 % | 75 % | 0,8 % |
+| 0,9 | 98,5 % | 59 % | 0,2 % |
+
+Ces chiffres comparent à la BD Forêt, qui n'est pas une vérité parfaite. Une
+pessière y compte jusqu'à 25 % de mélèze, donc une partie des « fausses
+alarmes » est sans doute du vrai mélèze. À l'inverse, des mélézins clairs
+ou peu étendus échappent au masque des arbres (WorldCover), et le satellite
+peut manquer des peuplements que la BD Forêt connaît (autour de Bessans
+par exemple). Les deux couches se complètent. Les tuiles débordent sur
+l'Italie et la Suisse : la détection y est appliquée, mais sans exemples
+locaux pour l'apprentissage. À contrôler en zoomant sur les photographies
+aériennes.
+
+Aux Menuires, il n'y a que de petits bosquets à la limite des arbres
+(18 ha détectés à moins de 5 km, aucun dans la BD Forêt). Le mélézin filmé
+par la webcam paraît dense de près, mais il est petit.
 
 ```bash
 pip install -e '.[satellite]'
