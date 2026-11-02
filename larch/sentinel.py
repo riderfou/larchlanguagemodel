@@ -5,8 +5,8 @@ vert comme un épicéa en juillet, doré fin octobre. On compare donc, pixel par
 pixel (20 m), une image d'été sans nuages et les images claires d'octobre.
 
 Vérité terrain : la BD Forêt V2 (IGN). Ses polygones de mélèze pur servent
-d'exemples positifs ; sapinières/pessières, pinèdes, feuillus, landes et
-prairies d'exemples négatifs. Un classifieur (gradient boosting) apprend la
+d'exemples positifs ; sapinières/pessières, pinèdes, feuillus, landes boisées
+d'exemples négatifs, toujours sur les pixels d'arbres (ESA WorldCover). Un classifieur (gradient boosting) apprend la
 signature été/automne, sa précision est mesurée sur des blocs de 10 km laissés
 de côté, puis il est appliqué à toute la forêt (masque arbres ESA WorldCover).
 Il retrouve ainsi les mélézins que la BD Forêt range ailleurs (mélanges,
@@ -490,8 +490,11 @@ def train_all(npzs: list[Path], per_class: int = 25000, test_keep: float = 0.2, 
     tr_X, tr_y, te_X, te_y, te_w = [], [], [], [], []
     for npz in npzs:
         d, X, grid = _load(npz)
-        sel, lab = d["sel"], d["lab"]
-        y = lab[sel]
+        sel, lab, trees = d["sel"], d["lab"], d["trees"]
+        # Apprentissage sur les seuls pixels d'arbres, comme la prédiction : sinon
+        # le modèle apprend que « forte chute d'automne = prairie » et rejette les
+        # mélèzes les plus jaunis.
+        y = np.where(trees, lab, 0)[sel]
         test = (spatial_blocks(grid)[sel.ravel()] % 4) == 0
         for c in np.unique(y[y > 0]):
             ii = np.flatnonzero(~test & (y == c))
@@ -532,7 +535,7 @@ def predict_tile(model, npz: Path) -> tuple[np.ndarray, Grid, np.ndarray]:
 
 
 def vectorize(prob: np.ndarray, grid: Grid, z: np.ndarray, threshold: int, min_px: int = 13,
-              tol_m: float = 15.0) -> list[dict]:
+              tol_m: float = 20.0, ndigits: int = 4) -> list[dict]:
     """Polygones des zones où la probabilité dépasse `threshold` (≥ `min_px` pixels, soit 0,5 ha)."""
     from rasterio.features import shapes
     from rasterio.warp import transform_geom
@@ -556,7 +559,8 @@ def vectorize(prob: np.ndarray, grid: Grid, z: np.ndarray, threshold: int, min_p
         g = transform_geom(grid.crs, "EPSG:4326", geom)
         if g["type"] == "Polygon":
             g = {"type": "MultiPolygon", "coordinates": [g["coordinates"]]}
-        f = simplify_feature({"type": "Feature", "properties": {"id": None}, "geometry": g}, tol_m)
+        # Pixels de 20 m : simplification à 20 m et 4 décimales (~8 m) suffisent.
+        f = simplify_feature({"type": "Feature", "properties": {"id": None}, "geometry": g}, tol_m, ndigits)
         if not f:
             continue
         f["properties"] = {"ha": f["properties"]["ha"], "p": int(round(pmean[i])), "z": int(round(zmean[i]))}

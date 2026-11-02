@@ -148,7 +148,7 @@ def simplify_ring(ring: list[list[float]], tol_m: float, ndigits: int = 5) -> li
     return out
 
 
-def simplify_feature(feat: dict, tol_m: float) -> dict | None:
+def simplify_feature(feat: dict, tol_m: float, ndigits: int = 5) -> dict | None:
     geom = feat["geometry"]
     polys = geom["coordinates"] if geom["type"] == "MultiPolygon" else [geom["coordinates"]]
     out_polys, area = [], 0.0
@@ -158,7 +158,7 @@ def simplify_feature(feat: dict, tol_m: float) -> dict | None:
             lat0 = sum(p[1] for p in ring) / len(ring)
             a = _area(_to_xy(ring[:-1] if ring[0] == ring[-1] else ring, lat0))
             area += -a if n else a
-            s = simplify_ring(ring, tol_m)
+            s = simplify_ring(ring, tol_m, ndigits)
             if s:
                 rings.append(s)
             elif n == 0:
