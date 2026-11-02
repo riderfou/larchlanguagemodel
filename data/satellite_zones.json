@@ -7,70 +7,70 @@
   "ete": "2026-07-24"
  },
  "serre-chevalier-mea": {
-  "hectares": 1304,
+  "hectares": 1303,
   "radius_km": 4,
-  "temoins_ha": 834,
+  "temoins_ha": 839,
   "tuile": "31TGK",
   "ete": "2026-07-22"
  },
  "saint-veran": {
-  "hectares": 1310,
+  "hectares": 1308,
   "radius_km": 4,
-  "temoins_ha": 267,
+  "temoins_ha": 264,
   "tuile": "32TLQ",
   "ete": "2026-07-27"
  },
  "vars-peynier": {
-  "hectares": 1045,
+  "hectares": 1043,
   "radius_km": 4,
-  "temoins_ha": 547,
+  "temoins_ha": 545,
   "tuile": "32TLQ",
   "ete": "2026-07-27"
  },
  "vars-chabrieres": {
-  "hectares": 1071,
+  "hectares": 1070,
   "radius_km": 4,
-  "temoins_ha": 597,
+  "temoins_ha": 595,
   "tuile": "31TGK",
   "ete": "2026-07-22"
  },
  "vars-les-claux": {
-  "hectares": 1093,
+  "hectares": 1090,
   "radius_km": 4,
-  "temoins_ha": 593,
+  "temoins_ha": 591,
   "tuile": "31TGK",
   "ete": "2026-07-22"
  },
  "serre-chevalier-monetier": {
-  "hectares": 1472,
+  "hectares": 1473,
   "radius_km": 4,
-  "temoins_ha": 196,
+  "temoins_ha": 197,
   "tuile": "31TGK",
   "ete": "2026-07-22"
  },
  "les-menuires-foret": {
   "hectares": 16,
   "radius_km": 4,
-  "temoins_ha": 358,
+  "temoins_ha": 356,
   "tuile": "31TGL",
   "ete": "2026-08-23"
  },
  "claree": {
-  "hectares": 1249,
+  "hectares": 1248,
   "radius_km": 4.0,
-  "temoins_ha": 1344,
+  "temoins_ha": 1346,
   "tuile": "31TGK",
   "ete": "2026-07-22"
  },
  "vallouise": {
-  "hectares": 964,
+  "hectares": 962,
   "radius_km": 4.0,
-  "temoins_ha": 594,
+  "temoins_ha": 596,
   "tuile": "31TGK",
   "ete": "2026-07-22"
  },
  "champsaur": {
-  "hectares": 881,
+  "hectares": 883,
   "radius_km": 4.0,
   "temoins_ha": 447,
   "tuile": "31TGK",
@@ -79,14 +79,14 @@
  "haute-ubaye": {
   "hectares": 1436,
   "radius_km": 4.0,
-  "temoins_ha": 1889,
+  "temoins_ha": 1887,
   "tuile": "32TLQ",
   "ete": "2026-07-27"
  },
  "ubaye-praloup": {
-  "hectares": 1314,
+  "hectares": 1318,
   "radius_km": 4.0,
-  "temoins_ha": 2395,
+  "temoins_ha": 2392,
   "tuile": "31TGK",
   "ete": "2026-07-22"
  },
@@ -98,14 +98,14 @@
   "ete": "2026-07-22"
  },
  "haute-tinee": {
-  "hectares": 1844,
+  "hectares": 1843,
   "radius_km": 4.0,
-  "temoins_ha": 294,
+  "temoins_ha": 295,
   "tuile": "32TLQ",
   "ete": "2026-07-27"
  },
  "queyras-abries": {
-  "hectares": 2589,
+  "hectares": 2592,
   "radius_km": 4.0,
   "temoins_ha": 83,
   "tuile": "32TLQ",
@@ -114,12 +114,12 @@
  "haute-maurienne-termignon": {
   "hectares": 571,
   "radius_km": 4.0,
-  "temoins_ha": 2157,
+  "temoins_ha": 2158,
   "tuile": "32TLR",
   "ete": "2026-07-24"
  },
  "haute-tarentaise": {
-  "hectares": 491,
+  "hectares": 493,
   "radius_km": 4.0,
   "temoins_ha": 119,
   "tuile": "32TLR",

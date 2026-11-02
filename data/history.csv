@@ -1,0 +1,10 @@
+timestamp,cam,valid,reason,gold_index,green,yellow,orange,brown,veg_share,gcc,rcc,mean_rgb,brightness
+2026-11-02T23:53,bessans-relais,0,image trop sombre (nuit ?),nan,0,0,0,0,0,nan,nan,#000000,0.047160614281892776
+2026-11-02T23:53,serre-chevalier-mea,0,image trop sombre (nuit ?),nan,0,0,0,0,0,nan,nan,#000000,0.04466251656413078
+2026-11-02T23:53,saint-veran,0,"image sans contraste (brouillard, nuage ?)",nan,0,0,0,0,0,nan,nan,#000000,0.27450746297836304
+2026-11-02T23:53,vars-peynier,0,image trop sombre (nuit ?),nan,0,0,0,0,0,nan,nan,#000000,0.011699940077960491
+2026-11-02T23:53,vars-chabrieres,0,image trop sombre (nuit ?),nan,0,0,0,0,0,nan,nan,#000000,0.012542993761599064
+2026-11-02T23:53,vars-les-claux,0,image trop sombre (nuit ?),nan,0,0,0,0,0,nan,nan,#000000,0.03241099417209625
+2026-11-02T23:53,serre-chevalier-monetier,0,image trop sombre (nuit ?),nan,0,0,0,0,0,nan,nan,#000000,0.03473076969385147
+2026-11-02T23:53,les-menuires-foret,0,image trop sombre (nuit ?),nan,0,0,0,0,0,nan,nan,#000000,0.04209669679403305
+2026-11-02T23:53,chamonix-lognan,1,,99.1,0.009,0.582,0.408,0.419,0.256,0.425,0.6034,#94701c,0.177

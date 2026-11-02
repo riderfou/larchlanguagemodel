@@ -1,0 +1,173 @@
+{
+ "bessans-relais": {
+  "time": "2026-11-02T23:53",
+  "error": null,
+  "measure": {
+   "valid": false,
+   "reason": "image trop sombre (nuit ?)",
+   "gold_index": NaN,
+   "green": 0,
+   "yellow": 0,
+   "orange": 0,
+   "brown": 0,
+   "veg_share": 0,
+   "gcc": NaN,
+   "rcc": NaN,
+   "mean_rgb": "#000000",
+   "brightness": 0.047160614281892776,
+   "roi_pixels": 50085
+  }
+ },
+ "serre-chevalier-mea": {
+  "time": "2026-11-02T23:53",
+  "error": null,
+  "measure": {
+   "valid": false,
+   "reason": "image trop sombre (nuit ?)",
+   "gold_index": NaN,
+   "green": 0,
+   "yellow": 0,
+   "orange": 0,
+   "brown": 0,
+   "veg_share": 0,
+   "gcc": NaN,
+   "rcc": NaN,
+   "mean_rgb": "#000000",
+   "brightness": 0.04466251656413078,
+   "roi_pixels": 6252
+  }
+ },
+ "saint-veran": {
+  "time": "2026-11-02T23:53",
+  "error": null,
+  "measure": {
+   "valid": false,
+   "reason": "image sans contraste (brouillard, nuage ?)",
+   "gold_index": NaN,
+   "green": 0,
+   "yellow": 0,
+   "orange": 0,
+   "brown": 0,
+   "veg_share": 0,
+   "gcc": NaN,
+   "rcc": NaN,
+   "mean_rgb": "#000000",
+   "brightness": 0.27450746297836304,
+   "roi_pixels": 316713
+  }
+ },
+ "vars-peynier": {
+  "time": "2026-11-02T23:53",
+  "error": null,
+  "measure": {
+   "valid": false,
+   "reason": "image trop sombre (nuit ?)",
+   "gold_index": NaN,
+   "green": 0,
+   "yellow": 0,
+   "orange": 0,
+   "brown": 0,
+   "veg_share": 0,
+   "gcc": NaN,
+   "rcc": NaN,
+   "mean_rgb": "#000000",
+   "brightness": 0.011699940077960491,
+   "roi_pixels": 30699
+  }
+ },
+ "vars-chabrieres": {
+  "time": "2026-11-02T23:53",
+  "error": null,
+  "measure": {
+   "valid": false,
+   "reason": "image trop sombre (nuit ?)",
+   "gold_index": NaN,
+   "green": 0,
+   "yellow": 0,
+   "orange": 0,
+   "brown": 0,
+   "veg_share": 0,
+   "gcc": NaN,
+   "rcc": NaN,
+   "mean_rgb": "#000000",
+   "brightness": 0.012542993761599064,
+   "roi_pixels": 21129
+  }
+ },
+ "vars-les-claux": {
+  "time": "2026-11-02T23:53",
+  "error": null,
+  "measure": {
+   "valid": false,
+   "reason": "image trop sombre (nuit ?)",
+   "gold_index": NaN,
+   "green": 0,
+   "yellow": 0,
+   "orange": 0,
+   "brown": 0,
+   "veg_share": 0,
+   "gcc": NaN,
+   "rcc": NaN,
+   "mean_rgb": "#000000",
+   "brightness": 0.03241099417209625,
+   "roi_pixels": 34695
+  }
+ },
+ "serre-chevalier-monetier": {
+  "time": "2026-11-02T23:53",
+  "error": null,
+  "measure": {
+   "valid": false,
+   "reason": "image trop sombre (nuit ?)",
+   "gold_index": NaN,
+   "green": 0,
+   "yellow": 0,
+   "orange": 0,
+   "brown": 0,
+   "veg_share": 0,
+   "gcc": NaN,
+   "rcc": NaN,
+   "mean_rgb": "#000000",
+   "brightness": 0.03473076969385147,
+   "roi_pixels": 58750
+  }
+ },
+ "les-menuires-foret": {
+  "time": "2026-11-02T23:53",
+  "error": null,
+  "measure": {
+   "valid": false,
+   "reason": "image trop sombre (nuit ?)",
+   "gold_index": NaN,
+   "green": 0,
+   "yellow": 0,
+   "orange": 0,
+   "brown": 0,
+   "veg_share": 0,
+   "gcc": NaN,
+   "rcc": NaN,
+   "mean_rgb": "#000000",
+   "brightness": 0.04209669679403305,
+   "roi_pixels": 180665
+  }
+ },
+ "chamonix-lognan": {
+  "time": "2026-11-02T23:53",
+  "error": null,
+  "measure": {
+   "valid": true,
+   "reason": "",
+   "gold_index": 99.1,
+   "green": 0.009,
+   "yellow": 0.582,
+   "orange": 0.408,
+   "brown": 0.419,
+   "veg_share": 0.256,
+   "gcc": 0.425,
+   "rcc": 0.6034,
+   "mean_rgb": "#94701c",
+   "brightness": 0.177,
+   "roi_pixels": 32708
+  }
+ }
+}
