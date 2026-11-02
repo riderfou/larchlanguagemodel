@@ -1,0 +1,84 @@
+# Liste des webcams surveillées.
+#
+# Pour chaque webcam :
+#   id          identifiant court (sert de nom de fichier)
+#   name        nom affiché
+#   lat, lon    position approximative de la zone de mélèzes visible
+#   elevation   altitude moyenne (m) des mélèzes visibles : sert au modèle météo
+#   source      comment récupérer l'image (voir ci-dessous)
+#   roi         zones de mélèzes dans l'image, en polygones aux coordonnées
+#               relatives (0..1, origine en haut à gauche). Facultatif mais
+#               fortement recommandé : sans ROI, toute la végétation de l'image
+#               est analysée (prairies, épicéas, pins... faussent le résultat).
+#               `larch roi <id>` produit une image quadrillée pour les tracer.
+#
+# Types de source :
+#   image  : URL directe d'un JPEG/PNG (le plus fiable). Trouvable via les
+#            outils développeur du navigateur (onglet Réseau, filtrer « jpg »).
+#   page   : page HTML ; l'image est cherchée dans og:image / balises <img>.
+#   browser: page rendue par un navigateur headless (Playwright) ; on récupère
+#            la plus grande image visible (ou `selector`). Pour les sites
+#            100 % JavaScript (Skaping, webcam-hd...).
+#   windy  : webcam Windy (`webcam_id`), nécessite la variable WINDY_API_KEY
+#            (clé gratuite : https://api.windy.com/keys).
+#   file   : fichier local (tests, import manuel).
+#
+# Les coordonnées / altitudes ci-dessous sont approximatives : à ajuster.
+
+cams:
+  - id: bessans-relais
+    name: Bessans – Le Relais (Haute-Maurienne)
+    lat: 45.320
+    lon: 7.000
+    elevation: 1800
+    source:
+      type: browser
+      url: https://app.webcam-hd.com/bessans/relais?lang=fr
+    # roi:
+    #   - [[0.00, 0.55], [1.00, 0.55], [1.00, 0.85], [0.00, 0.85]]
+
+  - id: serre-chevalier-mea
+    name: Serre Chevalier – La Méa
+    lat: 44.935
+    lon: 6.570
+    elevation: 1900
+    source:
+      type: browser
+      url: https://www.skaping.com/serre-chevalier/mea
+
+  - id: saint-veran
+    name: Saint-Véran (Queyras)
+    lat: 44.700
+    lon: 6.870
+    elevation: 2050
+    source:
+      type: browser
+      url: https://www.saintveran.com/webcams
+      # La page contient plusieurs webcams : préciser laquelle avec un
+      # sélecteur CSS, ex. "iframe:nth-of-type(1)" ou "img.webcam".
+      # selector: "img"
+
+  # Exemple Windy (ID visible dans l'URL windy.com/webcams/<id>) :
+  # - id: exemple-windy
+  #   name: Exemple Windy
+  #   lat: 45.0
+  #   lon: 6.6
+  #   elevation: 1900
+  #   source:
+  #     type: windy
+  #     webcam_id: 1234567890
+
+# Réglages de l'analyse
+settings:
+  # Seules les images prises dans cette plage horaire (heure locale) sont
+  # retenues pour l'indice du jour : lumière plus homogène.
+  daylight_hours: [10, 15]
+  timezone: Europe/Paris
+  # Modèle de prévision « froid cumulé » (voir README) :
+  forecast:
+    start_month_day: "08-01"   # début du cumul de froid
+    base_temp: 10.0            # °C : seuil de froid
+    # Degrés-jours de froid au pic. Valeur indicative (pic ~20-25 oct. vers
+    # 1900 m avec les températures Open-Meteo 2026) : `larch calibrate` la
+    # remplace par webcam dès qu'un pic a été observé.
+    peak_threshold: 45.0

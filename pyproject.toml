@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "larch-meteo"
+version = "0.1.0"
+description = "Météo des couleurs d'automne des mélèzes à partir de webcams"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy>=1.24",
+    "pillow>=10",
+    "pyyaml>=6",
+    "requests>=2.28",
+]
+
+[project.optional-dependencies]
+# Pour les webcams sans URL d'image directe (pages JavaScript : Skaping, webcam-hd...)
+browser = ["playwright>=1.40"]
+dev = ["pytest>=7"]
+
+[project.scripts]
+larch = "larch.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["larch*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

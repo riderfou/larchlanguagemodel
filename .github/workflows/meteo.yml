@@ -1,0 +1,55 @@
+name: Météo des mélèzes
+
+on:
+  schedule:
+    # 3 relevés par jour en milieu de journée (UTC), de septembre à novembre.
+    # = 11h17/13h17/14h17 heure d'été, 10h17/12h17/13h17 heure d'hiver.
+    - cron: "17 9,11,12 * 9-11 *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: meteo-meleze
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Installation
+        run: |
+          pip install -e '.[browser]'
+          playwright install --with-deps chromium
+      - name: Relevé des webcams + page
+        env:
+          WINDY_API_KEY: ${{ secrets.WINDY_API_KEY }}
+        run: larch run
+      - name: Sauvegarde de l'historique
+        run: |
+          git config user.name "larch-meteo"
+          git config user.email "larch-meteo@users.noreply.github.com"
+          git add data
+          git diff --cached --quiet || git commit -m "Relevé du $(date -u +%Y-%m-%dT%H:%MZ)"
+          git push
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: run
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

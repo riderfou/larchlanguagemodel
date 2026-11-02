@@ -1,0 +1,120 @@
+from datetime import date, timedelta
+
+import numpy as np
+from PIL import Image
+
+from larch import analysis, phenology
+from larch.fetch import candidate_images_from_html
+from larch.store import DailyPoint
+
+
+def scene(needle_rgb, sky=(120, 170, 230), w=400, h=300, seed=0):
+    """Ciel en haut, forêt texturée en bas."""
+    rng = np.random.default_rng(seed)
+    a = np.zeros((h, w, 3), dtype=np.float32)
+    a[: h // 3] = sky
+    forest = np.array(needle_rgb, dtype=np.float32) * rng.uniform(0.6, 1.15, (h - h // 3, w, 1))
+    a[h // 3:] = forest
+    return Image.fromarray(np.clip(a, 0, 255).astype(np.uint8))
+
+
+FOREST_ROI = [[(0, 0.4), (1, 0.4), (1, 1), (0, 1)]]
+
+
+def test_green_forest_is_green():
+    s = analysis.analyze(scene((60, 120, 50)), FOREST_ROI)
+    assert s.valid and s.gold_index < 5 and s.green > 0.9
+
+
+def test_golden_larch_is_gold():
+    s = analysis.analyze(scene((220, 170, 40)), FOREST_ROI)
+    assert s.valid and s.gold_index > 90 and s.yellow > 0.5
+
+
+def test_orange_larch():
+    s = analysis.analyze(scene((210, 110, 30)), FOREST_ROI)
+    assert s.valid and s.gold_index > 90 and s.orange > 0.5
+
+
+def test_sky_ignored_without_roi():
+    s = analysis.analyze(scene((220, 170, 40)))
+    assert s.valid and s.gold_index > 90
+
+
+def test_night_and_fog_invalid():
+    assert not analysis.analyze(scene((10, 12, 8), sky=(5, 5, 8))).valid
+    flat = Image.new("RGB", (400, 300), (190, 192, 195))
+    assert not analysis.analyze(flat).valid
+
+
+def test_snow_invalid():
+    snow = scene((240, 242, 245), sky=(235, 238, 242))
+    assert not analysis.analyze(snow, FOREST_ROI).valid
+
+
+def test_mixed_proportion():
+    a = np.asarray(scene((60, 120, 50))).copy()
+    b = np.asarray(scene((220, 170, 40)))
+    a[:, 200:] = b[:, 200:]
+    s = analysis.analyze(Image.fromarray(a), FOREST_ROI)
+    assert 40 < s.gold_index < 60
+
+
+def season(values, start=date(2026, 9, 20), veg=None):
+    return [DailyPoint(start + timedelta(days=i), v, (veg or [0.8] * len(values))[i], 0.35, "#aa9933", 3)
+            for i, v in enumerate(values)]
+
+
+def test_stages():
+    assert phenology.stage([]) == "inconnu"
+    assert phenology.stage(season([2, 3, 4])) == "vert"
+    assert phenology.stage(season([2, 8, 15, 22])) == "debut"
+    assert phenology.stage(season([10, 30, 50, 60])) == "en_cours"
+    assert phenology.stage(season([30, 60, 80, 85, 86])) == "pic"
+    pts = season([30, 60, 80, 88, 86, 70, 60, 55])
+    assert phenology.stage(pts) == "declin"
+    assert phenology.observed_peak(pts) == date(2026, 9, 23)
+
+
+def test_needle_drop_detected_by_veg_share():
+    pts = season([60, 80, 85, 85, 84], veg=[0.8, 0.8, 0.8, 0.5, 0.4])
+    assert phenology.stage(pts) == "declin"
+
+
+def test_logistic_fit_recovers_peak():
+    t0, s = 18, 4.0  # mi-coloration le 8 oct.
+    vals = [5 + 85 / (1 + np.exp(-(i - t0) / s)) for i in range(16)]  # observé jusqu'au 5 oct.
+    fit = phenology.fit_logistic(season([round(v, 1) for v in vals]))
+    true_peak = date(2026, 9, 20) + timedelta(days=round(t0 + 2.197 * s))
+    assert fit is not None
+    assert abs((fit.peak - true_peak).days) <= 3
+    assert fit.peak_min <= true_peak <= fit.peak_max
+
+
+def test_logistic_needs_signal():
+    assert phenology.fit_logistic(season([3, 4, 3, 5, 4, 3])) is None
+
+
+def test_cold_model():
+    start = date(2026, 8, 1)
+    temps = {start + timedelta(days=i): 12 - 0.15 * i for i in range(120)}
+    m = phenology.cold_model(temps, start, date(2026, 9, 1), base=10, threshold=100)
+    assert m.peak is not None and date(2026, 9, 15) < m.peak < date(2026, 10, 15)
+    assert 0 < m.progress < 1
+
+
+def test_html_candidates():
+    html = ('<meta property="og:image" content="/cam/last.jpg"><img src="logo.png">'
+            '<script>var u="https://cdn.x.com/a/b.jpg?t=1"</script>')
+    c = candidate_images_from_html(html, "https://site.fr/webcams")
+    assert c[0] == "https://site.fr/cam/last.jpg"
+    assert "https://cdn.x.com/a/b.jpg?t=1" in c
+    assert not any("logo" in u for u in c)
+
+
+def test_bare_days_after_peak_mean_decline():
+    pts = season([40, 70, 85, 86])
+    after = [date(2026, 9, 24), date(2026, 9, 25)]
+    assert phenology.stage(pts) == "pic"
+    assert phenology.stage(pts, after) == "declin"
+    assert phenology.observed_peak(pts, after) == date(2026, 9, 23)
