@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
+from .carte import render_map
 from .phenology import STAGES, ColdModel, LogisticFit
 from .store import DailyPoint
 
@@ -34,6 +35,8 @@ class CamReport:
     observed_peak: date | None = None
     error: str | None = None
     notes: list[str] = field(default_factory=list)
+    lat: float | None = None
+    lon: float | None = None
 
     @property
     def gold(self) -> float | None:
@@ -56,6 +59,7 @@ class CamReport:
         peak, src = self.peak_summary()
         return {
             "id": self.id, "name": self.name, "stage": self.stage,
+            "lat": self.lat, "lon": self.lon, "elevation": self.elevation, "image": self.image,
             "stage_label": STAGES[self.stage][0], "gold_index": self.gold,
             "peak": peak, "peak_source": src,
             "observed_peak": self.observed_peak.isoformat() if self.observed_peak else None,
@@ -134,7 +138,7 @@ def _card(c: CamReport, today: date) -> str:
     when = f"mis à jour {c.last_time:%d/%m %H:%M}" if c.last_time else ""
     swatch = c.points[-1].mean_rgb if c.points else "#888"
     return f"""
-<article class="card">
+<article class="card" id="{e(c.id)}">
   {img}
   <div class="body">
     <header><h2>{e(c.name)}</h2><span class="muted">{c.elevation:.0f} m · {when}</span></header>
@@ -191,7 +195,8 @@ footer{margin-top:28px;font-size:.85rem;color:var(--muted)}
 """
 
 
-def render(cams: list[CamReport], generated: datetime, out_dir: Path) -> Path:
+def render(cams: list[CamReport], generated: datetime, out_dir: Path,
+           larch_geojson: Path | None = None) -> Path:
     today = generated.date()
     out_dir.mkdir(parents=True, exist_ok=True)
     ranked = sorted((c for c in cams if c.gold is not None and c.stage != "declin"),
@@ -211,7 +216,8 @@ def render(cams: list[CamReport], generated: datetime, out_dir: Path) -> Path:
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Météo des mélèzes</title><style>{CSS}</style></head><body><main>
 <h1>Météo des mélèzes</h1>
-<p class="sub muted">Coloration d'automne estimée à partir des webcams · {generated:%d/%m/%Y %H:%M}</p>
+<p class="sub muted">Coloration d'automne estimée à partir des webcams · {generated:%d/%m/%Y %H:%M}
+· <a href="carte.html">Carte des mélézins →</a></p>
 <div class="top">{''.join(pills)}</div>
 <section class="grid">{''.join(_card(c, today) for c in cams)}</section>
 <footer>Indice d'or = part des aiguilles jaunes/orangées parmi les aiguilles colorées visibles
@@ -221,7 +227,9 @@ Prévisions indicatives : éclairage, neige et nuages influencent les mesures.</
 </main></body></html>"""
     path = out_dir / "index.html"
     path.write_text(doc, encoding="utf-8")
+    cams_json = [c.to_json() for c in cams]
     (out_dir / "latest.json").write_text(json.dumps(
         {"generated": generated.isoformat(timespec="minutes"),
-         "cams": [c.to_json() for c in cams]}, ensure_ascii=False, indent=1), encoding="utf-8")
+         "cams": cams_json}, ensure_ascii=False, indent=1), encoding="utf-8")
+    render_map(cams_json, STAGES, out_dir, larch_geojson)
     return path

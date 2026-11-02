@@ -150,3 +150,61 @@ def test_skaping_media_url_quality():
     assert skaping_media_url(lm, "full") == "https://h/serre-chevalier/mea/2026/11/02/15-50.jpg"
     video = "https://h/serre-chevalier/mea/video/2026/11/02/15-45.jpg"
     assert skaping_media_url(video, "large") == video
+
+
+def _square(lon, lat, side_deg, n=50):
+    """Carré fermé avec beaucoup de points alignés sur les côtés."""
+    pts = []
+    for k in range(n):
+        pts.append([lon + side_deg * k / n, lat])
+    for k in range(n):
+        pts.append([lon + side_deg, lat + side_deg * k / n])
+    for k in range(n):
+        pts.append([lon + side_deg - side_deg * k / n, lat + side_deg])
+    for k in range(n):
+        pts.append([lon, lat + side_deg - side_deg * k / n])
+    return pts + [pts[0]]
+
+
+def test_foret_simplify_keeps_shape_and_area():
+    from larch import foret
+    sq = _square(6.6, 44.6, 0.01)  # ~790 m x 1110 m
+    f = {"type": "Feature", "properties": {"id": "X"},
+         "geometry": {"type": "MultiPolygon", "coordinates": [[sq]]}}
+    out = foret.simplify_feature(f, tol_m=8)
+    ring = out["geometry"]["coordinates"][0][0]
+    assert len(ring) == 5 and ring[0] == ring[-1]          # 4 coins + fermeture
+    assert 85 < out["properties"]["ha"] < 90               # 0.01° x 0.01° à 44.6° N ≈ 88 ha
+
+
+def test_foret_hole_area_is_subtracted():
+    from larch import foret
+    outer, hole = _square(6.6, 44.6, 0.01), _square(6.602, 44.602, 0.005)
+    f = {"type": "Feature", "properties": {"id": "Y"},
+         "geometry": {"type": "MultiPolygon", "coordinates": [[outer, hole]]}}
+    ha = foret.simplify_feature(f, tol_m=8)["properties"]["ha"]
+    assert 64 < ha < 68                                     # 88 - 22 ha
+
+
+def test_larch_nearby():
+    from larch.carte import larch_nearby
+    fc = {"features": [
+        {"properties": {"ha": 10}, "geometry": {"coordinates": [[_square(6.70, 44.57, 0.002)]]}},
+        {"properties": {"ha": 7}, "geometry": {"coordinates": [[_square(6.90, 44.57, 0.002)]]}},
+    ]}
+    cams = [{"id": "a", "lat": 44.575, "lon": 6.699}, {"id": "b", "lat": None, "lon": None}]
+    assert larch_nearby(fc, cams) == {"a": 10}
+
+
+def test_map_page_is_generated(tmp_path):
+    import json as _json
+    from larch.carte import render_map
+    from larch.phenology import STAGES
+    geo = tmp_path / "m.geojson"
+    geo.write_text(_json.dumps({"type": "FeatureCollection", "features": []}))
+    cams = [{"id": "x", "name": "A </script> B", "lat": 45.0, "lon": 6.5, "elevation": 1900,
+             "stage": "pic", "gold_index": 88.0, "peak": "20 oct.", "peak_source": "pic observé",
+             "image": "img/x.jpg"}]
+    page = render_map(cams, STAGES, tmp_path / "site", geo).read_text()
+    assert "meleze.geojson" in page and (tmp_path / "site" / "meleze.geojson").exists()
+    assert "A </script> B" not in page                      # échappé dans le JSON inline

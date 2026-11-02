@@ -24,7 +24,8 @@ playwright install chromium
 larch run
 ```
 
-La page est générée dans `site/index.html` (et `site/latest.json`).
+La page est générée dans `site/index.html` (et `site/latest.json`), avec la
+carte des mélézins dans `site/carte.html`.
 
 Autres commandes :
 
@@ -35,6 +36,7 @@ Autres commandes :
 | `larch analyze photo.jpg --cam saint-veran --overlay out.png` | analyse une image locale |
 | `larch roi saint-veran` | image quadrillée pour tracer les zones de mélèzes |
 | `larch calibrate` | ajuste le modèle de prévision sur les pics observés |
+| `larch foret` | (re)télécharge les mélézins de la BD Forêt V2 pour la carte |
 
 ## Configurer les webcams (`cams.yaml`)
 
@@ -61,7 +63,8 @@ Chamonix-Lognan). Pour chacune :
    Domaines contactés : `www.skaping.com`, `skaping.s3.gra.io.cloud.ovh.net`
    (secours : `rvfbdt.skaping.com`), `app.webcam-hd.com`,
    `skol-webcams-archives.s3.fr-par.scw.cloud`, `www.vision-environnement.com`,
-   `api.open-meteo.com`.
+   `api.open-meteo.com`, et pour la carte `data.geopf.fr` (IGN) et
+   `cdnjs.cloudflare.com` (Leaflet).
 2. **La zone de mélèzes (ROI).** Indispensable pour une mesure juste : sans
    ROI, l'herbe jaunie, les épicéas ou les pins cembro faussent l'indice.
    `larch roi <id>` produit une image quadrillée (coordonnées 0–1) ; reportez les
@@ -101,6 +104,30 @@ Trois sources, la plus fiable disponible est affichée :
    **Le seuil par défaut (45) est une estimation grossière** : après une saison
    d'observations, `larch calibrate` le recale pour chaque webcam
    (`data/calibration.json`), et la prévision s'améliore d'année en année.
+
+## Carte des mélézins
+
+`site/carte.html` (lien en haut de la page principale) est une carte Leaflet :
+
+- **Mélézins** : forêts fermées de mélèze pur de la **BD Forêt® V2** de l'IGN
+  (code TFV `FF2-63-63`, au moins 75 % de mélèze dans le couvert), soit environ
+  4 800 polygones et 99 000 ha en France, des Alpes du Sud surtout. Clic sur un
+  polygone : surface.
+- **Webcams** : couleur du stade, et au clic la dernière image, l'indice d'or,
+  la date du pic et la surface de mélèze pur à moins de 5 km.
+- **Fonds IGN** (Géoplateforme, sans clé) : Plan IGN, photographies aériennes,
+  ombrage du relief et, pour le contexte, toutes les formations de la BD Forêt V2.
+
+Limite de la donnée : la BD Forêt V2 ne nomme le mélèze que dans les
+peuplements purs. Les mélézins mélangés (avec pin cembro, épicéa…), fréquents en
+Savoie et Haute-Savoie, sont classés « mélange de conifères » ou « forêt ouverte
+de conifères » : ils n'apparaissent que dans la couche « Toutes formations ».
+
+Les polygones sont téléchargés une fois par le WFS de la Géoplateforme
+(`larch foret`), simplifiés à 8 m (la BD Forêt est photo-interprétée au
+1/25 000) et enregistrés dans `data/meleze_bdforet_v2.geojson` (7 Mo, ~2 Mo
+compressé). La BD Forêt V2 n'étant plus mise à jour, il n'y a pas à relancer
+cette commande. Données IGN sous Licence Ouverte Etalab 2.0.
 
 ## Automatisation (GitHub Actions + GitHub Pages)
 

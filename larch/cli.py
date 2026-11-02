@@ -1,4 +1,4 @@
-"""Ligne de commande : larch fetch | report | run | analyze | roi | calibrate."""
+"""Ligne de commande : larch fetch | report | run | analyze | roi | calibrate | foret."""
 from __future__ import annotations
 
 import argparse
@@ -16,6 +16,7 @@ from .fetch import fetch_cam
 from .report import CamReport, render
 
 ARCHIVE_WIDTH = 800
+LARCH_GEOJSON = "meleze_bdforet_v2.geojson"   # dans le dossier data/ (voir `larch foret`)
 
 
 def _now(cfg: Config) -> datetime:
@@ -107,6 +108,7 @@ def build_reports(cfg: Config, args) -> list[CamReport]:
         st = status.get(cam.id, {})
         rep = CamReport(
             id=cam.id, name=cam.name, elevation=cam.elevation, stage=phenology.stage(pts, bare),
+            lat=cam.lat, lon=cam.lon,
             points=pts, last=st.get("measure"), error=st.get("error"),
             last_time=datetime.fromisoformat(st["time"]) if st.get("time") else None,
             fit=phenology.fit_logistic(pts), observed_peak=phenology.observed_peak(pts, bare),
@@ -133,11 +135,22 @@ def build_reports(cfg: Config, args) -> list[CamReport]:
 
 def cmd_report(cfg: Config, args) -> int:
     reports = build_reports(cfg, args)
-    path = render(reports, _now(cfg), Path(args.site))
+    path = render(reports, _now(cfg), Path(args.site), Path(args.data) / LARCH_GEOJSON)
     for r in reports:
         peak, src = r.peak_summary()
         print(f"[{r.id}] {phenology.STAGES[r.stage][0]} · pic : {peak} ({src})")
     print(f"→ {path}")
+    return 0
+
+
+def cmd_foret(cfg: Config, args) -> int:
+    """Télécharge les forêts de mélèze pur de la BD Forêt V2 (IGN) pour la carte."""
+    from . import foret
+    out = Path(args.out or Path(args.data) / LARCH_GEOJSON)
+    print("Téléchargement BD Forêt V2 (WFS Géoplateforme, code TFV FF2-63-63)…")
+    info = foret.build(out, tol_m=args.tolerance)
+    print(f"→ {out} : {info['features']} polygones, {info['hectares']} ha, "
+          f"{info['bytes'] / 1e6:.1f} Mo (simplification {args.tolerance:g} m)")
     return 0
 
 
@@ -239,13 +252,16 @@ def main(argv: list[str] | None = None) -> int:
     o.add_argument("cam")
     o.add_argument("--image")
     o.add_argument("--out")
+    fo = sub.add_parser("foret", help="télécharge les mélézins de la BD Forêt V2 (IGN) pour la carte")
+    fo.add_argument("--out")
+    fo.add_argument("--tolerance", type=float, default=8.0, help="simplification (m)")
     c = sub.add_parser("calibrate", help="ajuste le modèle sur les pics observés")
     c.add_argument("--cam")
 
     args = p.parse_args(argv)
     cfg = load_config(args.config)
     return {"fetch": cmd_fetch, "report": cmd_report, "run": cmd_run, "analyze": cmd_analyze,
-            "roi": cmd_roi, "calibrate": cmd_calibrate}[args.cmd](cfg, args)
+            "roi": cmd_roi, "calibrate": cmd_calibrate, "foret": cmd_foret}[args.cmd](cfg, args)
 
 
 if __name__ == "__main__":
