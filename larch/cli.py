@@ -17,6 +17,7 @@ from .report import CamReport, render
 
 ARCHIVE_WIDTH = 800
 LARCH_GEOJSON = "meleze_bdforet_v2.geojson"   # dans le dossier data/ (voir `larch foret`)
+MIXED_GEOJSON = "coniferes_altitude_bdforet_v2.geojson"
 
 
 def _now(cfg: Config) -> datetime:
@@ -135,7 +136,8 @@ def build_reports(cfg: Config, args) -> list[CamReport]:
 
 def cmd_report(cfg: Config, args) -> int:
     reports = build_reports(cfg, args)
-    path = render(reports, _now(cfg), Path(args.site), Path(args.data) / LARCH_GEOJSON)
+    path = render(reports, _now(cfg), Path(args.site), Path(args.data) / LARCH_GEOJSON,
+                  Path(args.data) / MIXED_GEOJSON)
     for r in reports:
         peak, src = r.peak_summary()
         print(f"[{r.id}] {phenology.STAGES[r.stage][0]} · pic : {peak} ({src})")
@@ -144,13 +146,21 @@ def cmd_report(cfg: Config, args) -> int:
 
 
 def cmd_foret(cfg: Config, args) -> int:
-    """Télécharge les forêts de mélèze pur de la BD Forêt V2 (IGN) pour la carte."""
+    """Télécharge les forêts de la BD Forêt V2 (IGN) pour la carte."""
     from . import foret
-    out = Path(args.out or Path(args.data) / LARCH_GEOJSON)
-    print("Téléchargement BD Forêt V2 (WFS Géoplateforme, code TFV FF2-63-63)…")
-    info = foret.build(out, tol_m=args.tolerance)
-    print(f"→ {out} : {info['features']} polygones, {info['hectares']} ha, "
-          f"{info['bytes'] / 1e6:.1f} Mo (simplification {args.tolerance:g} m)")
+    data = Path(args.data)
+    if args.only in (None, "pur"):
+        out = data / LARCH_GEOJSON
+        print("Mélèze pur : BD Forêt V2, code TFV FF2-63-63 (WFS Géoplateforme)…")
+        info = foret.build(out, tol_m=args.tolerance)
+        print(f"→ {out} : {info['features']} polygones, {info['hectares']} ha, "
+              f"{info['bytes'] / 1e6:.1f} Mo")
+    if args.only in (None, "melange"):
+        out = data / MIXED_GEOJSON
+        print(f"Conifères sans essence précisée, Alpes, ≥ {args.min_elevation:g} m…")
+        info = foret.build_mixed(out, tol_m=args.tolerance_mixed, min_elevation=args.min_elevation)
+        print(f"→ {out} : {info['features']} polygones (sur {info['downloaded']}), "
+              f"{info['hectares']} ha, {info['bytes'] / 1e6:.1f} Mo")
     return 0
 
 
@@ -253,8 +263,12 @@ def main(argv: list[str] | None = None) -> int:
     o.add_argument("--image")
     o.add_argument("--out")
     fo = sub.add_parser("foret", help="télécharge les mélézins de la BD Forêt V2 (IGN) pour la carte")
-    fo.add_argument("--out")
-    fo.add_argument("--tolerance", type=float, default=8.0, help="simplification (m)")
+    fo.add_argument("--only", choices=["pur", "melange"], help="ne (re)faire qu'une des deux couches")
+    fo.add_argument("--tolerance", type=float, default=8.0, help="simplification du mélèze pur (m)")
+    fo.add_argument("--tolerance-mixed", type=float, default=10.0,
+                    help="simplification des conifères d'altitude (m)")
+    fo.add_argument("--min-elevation", type=float, default=1400.0,
+                    help="altitude minimale des conifères sans essence précisée (m)")
     c = sub.add_parser("calibrate", help="ajuste le modèle sur les pics observés")
     c.add_argument("--cam")
 

@@ -6,7 +6,9 @@ import json
 import math
 from pathlib import Path
 
-GEOJSON_NAME = "meleze.geojson"
+# Servis en .json : GitHub Pages compresse ce type à coup sûr (≈ 4 fois moins lourd).
+GEOJSON_NAME = "meleze.json"
+MIXED_NAME = "coniferes.json"
 NEARBY_KM = 5.0
 
 
@@ -21,7 +23,7 @@ def _km(lon1: float, lat1: float, lon2: float, lat2: float) -> float:
 
 
 def larch_nearby(geojson: dict, cams: list[dict], radius_km: float = NEARBY_KM) -> dict[str, float]:
-    """Surface (ha) de mélèze pur dont le centre est à moins de `radius_km` de chaque webcam."""
+    """Surface (ha) des polygones dont le centre est à moins de `radius_km` de chaque webcam."""
     cents = [(_centroid(f["geometry"]), f["properties"].get("ha", 0)) for f in geojson["features"]]
     out = {}
     for c in cams:
@@ -70,7 +72,7 @@ padding:6px 12px;font-size:.85rem}
 </style></head><body>
 <div id="map" role="application" aria-label="Carte des mélézins et des webcams"></div>
 <div id="head" class="panel"><h1>Carte des mélézins</h1>
-<p><span class="desc">Forêts de mélèze pur de la BD Forêt® V2 (IGN) et webcams suivies · </span><a
+<p><span class="desc">Mélézins de la BD Forêt® V2 (IGN) et webcams suivies · </span><a
 href="index.html">← Météo des mélèzes</a></p></div>
 <div id="status" class="panel" role="status">Chargement des mélézins…</div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
@@ -109,8 +111,10 @@ for (const c of CAMS) {
   const m = L.circleMarker([c.lat, c.lon], {radius: 9, weight: 2.5, color: "#fff",
     fillColor: st[1], fillOpacity: 1, pane: "markerPane"});
   const gold = c.gold_index == null ? "—" : Math.round(c.gold_index);
-  const near = c.larch_nearby_ha == null ? "" :
-    `<div class="muted">Mélèze pur à moins de ${NEARBY_KM} km : ${fr.format(c.larch_nearby_ha)} ha</div>`;
+  const near = (c.larch_nearby_ha == null ? "" :
+    `<div class="muted">Mélèze pur à moins de ${NEARBY_KM} km : ${fr.format(c.larch_nearby_ha)} ha</div>`) +
+    (c.mixed_nearby_ha == null ? "" :
+    `<div class="muted">Conifères d'altitude (mélèze possible) : ${fr.format(c.mixed_nearby_ha)} ha</div>`);
   m.bindPopup(`<h3>${esc(c.name)}</h3>
     <div style="color:${st[1]};font-weight:600">${esc(st[0])}</div>
     ${c.image ? `<img src="${esc(c.image)}" alt="Dernière image de ${esc(c.name)}" loading="lazy">` : ""}
@@ -131,6 +135,29 @@ else map.setView([45.0, 6.6], 8);
 // --- Mélézins BD Forêt V2 ---------------------------------------------------
 const larchStyle = {color: getComputedStyle(document.documentElement).getPropertyValue("--larch-line").trim() || "#9a5b00",
   weight: 1, fillColor: "#e8a317", fillOpacity: 0.5};
+const MIXED = {
+  melange: {label: "Mélange de conifères", fill: "#f2d38a", line: "#c99a3a", opacity: 0.45},
+  ouverte: {label: "Forêt ouverte de conifères", fill: "#f8e7bd", line: "#d6b56a", opacity: 0.45},
+};
+const mixedNote = `<div class="muted" style="margin-top:4px">Essence non précisée par la BD Forêt.
+  À cette altitude, souvent du mélèze mêlé de pin cembro, de pin à crochets ou d'épicéa,
+  mais sa présence n'est pas garantie.</div>`;
+function mixedLayer(t) {
+  const m = MIXED[t];
+  return L.geoJSON(null, {
+    filter: f => f.properties.t === t,
+    style: () => ({color: m.line, weight: 0.8, fillColor: m.fill, fillOpacity: m.opacity}),
+    onEachFeature: (f, l) => l.bindPopup(
+      `<h3>${m.label}</h3>
+       <div><span class="big">${fr.format(f.properties.ha)}</span> <span class="muted">ha · vers ${fr.format(f.properties.z)} m</span></div>
+       ${mixedNote}
+       <div class="muted" style="margin-top:4px">BD Forêt® V2 (IGN) · code TFV ${esc(f.properties.code)}</div>`)
+  });
+}
+const melange = mixedLayer("melange"), ouverte = mixedLayer("ouverte");
+const HAS_MIXED = __HAS_MIXED__;
+if (HAS_MIXED) { ouverte.addTo(map); melange.addTo(map); }
+
 const larch = L.geoJSON(null, {
   style: () => larchStyle,
   onEachFeature: (f, l) => l.bindPopup(
@@ -142,10 +169,12 @@ larch.addTo(map);
 
 const layers = L.control.layers(
   {"Plan IGN": plan, "Photographies aériennes": ortho},
-  {"Mélèze pur (BD Forêt V2)": larch,
-   "Toutes formations forestières (BD Forêt V2)": foretV2,
+  Object.assign({"Mélèze pur (BD Forêt V2)": larch},
+   HAS_MIXED ? {"Mélange de conifères ≥ __MINZ__ m (mélèze possible)": melange,
+                "Forêt ouverte de conifères ≥ __MINZ__ m (mélèze possible)": ouverte} : {},
+   {"Toutes formations forestières (BD Forêt V2)": foretV2,
    "Relief (ombrage)": relief,
-   "Webcams": camLayer},
+   "Webcams": camLayer}),
   {collapsed: window.matchMedia("(max-width: 640px)").matches}).addTo(map);
 // Les webcams toujours au-dessus des polygones
 map.on("overlayadd", () => camLayer.eachLayer(l => l.bringToFront && l.bringToFront()));
@@ -159,7 +188,20 @@ fetch("__GEOJSON__").then(r => {
   camLayer.eachLayer(l => l.bringToFront());
   const ha = fc.features.reduce((s, f) => s + (f.properties.ha || 0), 0);
   status.textContent = `${fr.format(fc.features.length)} forêts de mélèze pur · ${fr.format(Math.round(ha))} ha`;
-  setTimeout(() => status.remove(), 4000);
+  if (!HAS_MIXED) { setTimeout(() => status.remove(), 4000); return; }
+  status.textContent += " · chargement des conifères d'altitude…";
+  // Après le mélèze pur : la carte est utilisable pendant ce second chargement.
+  return fetch("__MIXED__").then(r => {
+    if (!r.ok) throw new Error(r.status + " " + r.statusText);
+    return r.json();
+  }).then(mx => {
+    melange.addData(mx); ouverte.addData(mx);
+    larch.bringToFront();
+    camLayer.eachLayer(l => l.bringToFront());
+    status.textContent = `${fr.format(fc.features.length)} forêts de mélèze pur · ` +
+      `${fr.format(mx.features.length)} forêts de conifères d'altitude`;
+    setTimeout(() => status.remove(), 4000);
+  });
 }).catch(e => {
   status.textContent = "Mélézins indisponibles (" + e.message + ")";
 });
@@ -171,7 +213,10 @@ legend.onAdd = () => {
   d.id = "legend";
   const open = window.matchMedia("(max-width: 640px)").matches ? "" : " open";
   d.innerHTML = `<details${open}><summary>Légende</summary>
-    <b>Mélézins</b><span class="sw" style="background:#e8a317;border:1px solid #9a5b00"></span>Forêt fermée de mélèze pur<br>
+    <b>Mélézins</b><span class="sw" style="background:#e8a317;border:1px solid #9a5b00"></span>Forêt fermée de mélèze pur<br>` +
+    (HAS_MIXED ? `<span class="sw" style="background:#f2d38a;border:1px solid #c99a3a"></span>Mélange de conifères*<br>
+    <span class="sw" style="background:#f8e7bd;border:1px solid #d6b56a"></span>Forêt ouverte de conifères*<br>
+    <span class="muted">* ≥ __MINZ__ m, mélèze possible</span><br>` : "") + `
     <b style="margin-top:4px">Webcams</b>` +
     Object.entries(STAGES).filter(([k]) => CAMS.some(c => c.stage === k) || k !== "inconnu")
       .map(([, [label, color]]) => `<span class="sw dot" style="background:${color}"></span>${esc(label)}`).join("<br>") +
@@ -184,8 +229,9 @@ legend.addTo(map);
 """
 
 
-def render_map(cams: list[dict], stages: dict, out_dir: Path, larch_geojson: Path | None) -> Path:
-    """Écrit `carte.html` (et copie le GeoJSON des mélézins) dans `out_dir`."""
+def render_map(cams: list[dict], stages: dict, out_dir: Path, larch_geojson: Path | None,
+               mixed_geojson: Path | None = None) -> Path:
+    """Écrit `carte.html` (et copie les GeoJSON des mélézins) dans `out_dir`."""
     out_dir.mkdir(parents=True, exist_ok=True)
     cams = [dict(c) for c in cams]
     if larch_geojson and larch_geojson.exists():
@@ -194,8 +240,19 @@ def render_map(cams: list[dict], stages: dict, out_dir: Path, larch_geojson: Pat
         near = larch_nearby(json.loads(raw), cams)
         for c in cams:
             c["larch_nearby_ha"] = near.get(c["id"])
+    has_mixed, min_z = False, 1400
+    if mixed_geojson and mixed_geojson.exists():
+        raw = mixed_geojson.read_bytes()
+        (out_dir / MIXED_NAME).write_bytes(raw)
+        mixed = json.loads(raw)
+        has_mixed = True
+        zs = [f["properties"]["z"] for f in mixed["features"] if f["properties"].get("z") is not None]
+        min_z = min(zs) if zs else min_z
+        near = larch_nearby(mixed, cams)
+        for c in cams:
+            c["mixed_nearby_ha"] = near.get(c["id"])
     keep = ("id", "name", "lat", "lon", "elevation", "stage", "gold_index", "peak", "peak_source",
-            "image", "larch_nearby_ha")
+            "image", "larch_nearby_ha", "mixed_nearby_ha")
     payload = [{k: c.get(k) for k in keep} for c in cams]
 
     def js(obj) -> str:  # JSON sûr dans un <script>
@@ -204,7 +261,10 @@ def render_map(cams: list[dict], stages: dict, out_dir: Path, larch_geojson: Pat
     doc = (TEMPLATE.replace("__CAMS__", js(payload))
            .replace("__STAGES__", js({k: list(v) for k, v in stages.items()}))
            .replace("__NEARBY__", js(NEARBY_KM))
-           .replace("__GEOJSON__", html.escape(GEOJSON_NAME)))
+           .replace("__GEOJSON__", html.escape(GEOJSON_NAME))
+           .replace("__MIXED__", html.escape(MIXED_NAME))
+           .replace("__HAS_MIXED__", js(has_mixed))
+           .replace("__MINZ__", f"{int(min_z // 100 * 100)}"))
     path = out_dir / "carte.html"
     path.write_text(doc, encoding="utf-8")
     return path

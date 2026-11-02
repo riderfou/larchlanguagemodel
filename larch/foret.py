@@ -8,34 +8,78 @@ mélézins mélangés sont rangés dans « mélange de conifères » (FF2-00-00)
 Les ~4 800 polygones de France sont téléchargés une fois par le WFS de la
 Géoplateforme, simplifiés (quelques mètres) et enregistrés en GeoJSON : la carte
 n'a ainsi pas besoin d'interroger l'IGN à chaque visite.
+
+En complément (teinte plus claire sur la carte), les formations de conifères
+sans essence précisée, dans les Alpes et au-dessus d'une altitude donnée : à
+l'étage subalpin, ce sont souvent des mélézins mêlés de pin cembro, de pin à
+crochets ou d'épicéa, ou des mélézins clairs pâturés. Rien ne garantit
+toutefois la présence du mélèze.
 """
 from __future__ import annotations
 
 import json
 import math
+import time
 from pathlib import Path
 
 import requests
 
 WFS_URL = "https://data.geopf.fr/wfs/ows"
+ALTI_URL = "https://data.geopf.fr/altimetrie/1.0/calcul/alti/rest/elevation.json"
 TYPENAME = "LANDCOVER.FORESTINVENTORY.V2:formation_vegetale"
 LARCH_TFV = "FF2-63-63"
 PAGE = 1000
 EARTH_R = 6371008.8
 
+# Conifères sans essence précisée : code TFV -> catégorie sur la carte
+MIXED_CODES = {
+    "FF2-00-00": "melange",   # forêt fermée à mélange de conifères
+    "FF2-90-90": "melange",   # forêt fermée à mélange d'autres conifères
+    "FF2-00": "melange",      # forêt fermée de conifères purs en îlots
+    "FO2": "ouverte",         # forêt ouverte de conifères purs
+}
+ALPS_BBOX = (5.5, 43.7, 7.8, 46.5)  # lon min, lat min, lon max, lat max
+MIN_ELEVATION = 1400.0
 
-def download(code_tfv: str = LARCH_TFV, timeout: int = 300) -> list[dict]:
-    """Toutes les entités du code TFV donné, en GeoJSON lon/lat (EPSG:4326)."""
+
+def _request(method: str, url: str, tries: int = 4, **kw) -> requests.Response:
+    """Requête avec nouvelles tentatives : les grosses pages WFS sont parfois coupées."""
+    for k in range(tries):
+        try:
+            r = requests.request(method, url, **kw)
+            r.raise_for_status()
+            r.content  # force la lecture complète (ChunkedEncodingError ici)
+            return r
+        except (requests.ConnectionError, requests.Timeout, requests.exceptions.ChunkedEncodingError,
+                requests.HTTPError) as e:
+            status = getattr(getattr(e, "response", None), "status_code", None)
+            if k == tries - 1 or (status is not None and status < 500 and status != 429):
+                raise
+            time.sleep(5 * 2 ** k)
+    raise AssertionError("inaccessible")
+
+
+def cql(code_tfv: str, bbox: tuple[float, float, float, float] | None = None) -> str:
+    f = f"code_tfv='{code_tfv}'"
+    if bbox:
+        # CRS:84 : ordre lon/lat sans ambiguïté (sans CRS explicite, la BBOX
+        # est lue en Lambert 93, la projection native de la couche).
+        f += " AND BBOX(geom,{},{},{},{},'CRS:84')".format(*bbox)
+    return f
+
+
+def download(code_tfv: str = LARCH_TFV, bbox: tuple[float, float, float, float] | None = None,
+             timeout: int = 300) -> list[dict]:
+    """Toutes les entités du code TFV (dans l'emprise), en GeoJSON lon/lat (EPSG:4326)."""
     feats: list[dict] = []
     start = 0
     while True:
-        r = requests.get(WFS_URL, timeout=timeout, params={
+        r = _request("GET", WFS_URL, timeout=timeout, params={
             "SERVICE": "WFS", "VERSION": "2.0.0", "REQUEST": "GetFeature",
             "TYPENAMES": TYPENAME, "OUTPUTFORMAT": "application/json",
-            "SRSNAME": "EPSG:4326", "CQL_FILTER": f"code_tfv='{code_tfv}'",
+            "SRSNAME": "EPSG:4326", "CQL_FILTER": cql(code_tfv, bbox),
             "SORTBY": "id", "COUNT": PAGE, "STARTINDEX": start,
         })
-        r.raise_for_status()
         page = r.json().get("features", [])
         feats.extend(page)
         if len(page) < PAGE:
@@ -128,6 +172,65 @@ def simplify_feature(feat: dict, tol_m: float) -> dict | None:
         "properties": {"id": feat["properties"].get("id"), "ha": round(area / 10_000, 1)},
         "geometry": {"type": "MultiPolygon", "coordinates": out_polys},
     }
+
+
+def elevations(points: list[tuple[float, float]], batch: int = 500, timeout: int = 120) -> list[float | None]:
+    """Altitudes (m) des points lon/lat, par le service d'altimétrie de l'IGN (RGE ALTI)."""
+    out: list[float | None] = []
+    for i in range(0, len(points), batch):
+        chunk = points[i:i + batch]
+        r = _request("POST", ALTI_URL, timeout=timeout, json={
+            "lon": "|".join(f"{lon:.6f}" for lon, _ in chunk),
+            "lat": "|".join(f"{lat:.6f}" for _, lat in chunk),
+            "resource": "ign_rge_alti_wld", "zonly": "true",
+        })
+        zs = r.json()["elevations"]
+        if len(zs) != len(chunk):
+            raise RuntimeError(f"altimétrie : {len(zs)} altitudes pour {len(chunk)} points")
+        # -99999 = hors couverture
+        out += [None if z is None or z < -1000 else float(z) for z in zs]
+    return out
+
+
+def ring_center(feat: dict) -> tuple[float, float]:
+    """Point représentatif : moyenne des sommets du contour extérieur du plus grand polygone."""
+    rings = [poly[0] for poly in feat["geometry"]["coordinates"]]
+    ring = max(rings, key=len)
+    pts = ring[:-1] if len(ring) > 1 and ring[0] == ring[-1] else ring
+    return (sum(p[0] for p in pts) / len(pts), sum(p[1] for p in pts) / len(pts))
+
+
+def build_mixed(out: Path, tol_m: float = 10.0, min_elevation: float = MIN_ELEVATION,
+                bbox: tuple[float, float, float, float] = ALPS_BBOX, log=print) -> dict:
+    """Conifères sans essence précisée (mélèze possible), dans les Alpes, au-dessus de `min_elevation`."""
+    feats: list[dict] = []
+    downloaded = 0
+    for code, cat in MIXED_CODES.items():
+        raw = download(code, bbox)
+        downloaded += len(raw)
+        simp = [f for f in (simplify_feature(f, tol_m) for f in raw) if f]
+        zs = elevations([ring_center(f) for f in simp])
+        kept = 0
+        for f, z in zip(simp, zs):
+            if z is not None and z >= min_elevation:
+                f["properties"].update({"t": cat, "code": code, "z": round(z)})
+                feats.append(f)
+                kept += 1
+        log(f"  {code} : {len(raw)} polygones dans les Alpes, {kept} au-dessus de {min_elevation:.0f} m")
+    fc = {
+        "type": "FeatureCollection",
+        "name": "coniferes_altitude_bdforet_v2",
+        "source": ("IGN – BD Forêt® V2, formations de conifères sans essence précisée "
+                   f"({', '.join(MIXED_CODES)}), Alpes, altitude ≥ {min_elevation:.0f} m "
+                   "(RGE ALTI au centre du polygone), Licence Ouverte Etalab 2.0"),
+        "simplification_m": tol_m,
+        "features": feats,
+    }
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(fc, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+    return {"features": len(feats), "downloaded": downloaded,
+            "hectares": round(sum(f["properties"]["ha"] for f in feats)),
+            "bytes": out.stat().st_size}
 
 
 def build(out: Path, tol_m: float = 8.0) -> dict:

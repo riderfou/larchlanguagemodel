@@ -206,5 +206,36 @@ def test_map_page_is_generated(tmp_path):
              "stage": "pic", "gold_index": 88.0, "peak": "20 oct.", "peak_source": "pic observé",
              "image": "img/x.jpg"}]
     page = render_map(cams, STAGES, tmp_path / "site", geo).read_text()
-    assert "meleze.geojson" in page and (tmp_path / "site" / "meleze.geojson").exists()
+    assert "meleze.json" in page and (tmp_path / "site" / "meleze.json").exists()
+    assert "const HAS_MIXED = false" in page
     assert "A </script> B" not in page                      # échappé dans le JSON inline
+
+
+def test_build_mixed_filters_by_elevation(tmp_path, monkeypatch):
+    from larch import foret
+
+    def fake_download(code, bbox=None):
+        assert bbox == foret.ALPS_BBOX
+        return [{"type": "Feature", "properties": {"id": f"{code}-{k}"},
+                 "geometry": {"type": "MultiPolygon",
+                              "coordinates": [[_square(6.6 + k * 0.1, 44.6, 0.01)]]}} for k in range(2)]
+
+    # 1er polygone de chaque code en altitude, le 2e en vallée
+    monkeypatch.setattr(foret, "download", fake_download)
+    monkeypatch.setattr(foret, "elevations", lambda pts: [1800.0, 900.0][:len(pts)])
+    info = foret.build_mixed(tmp_path / "m.geojson", log=lambda *_: None)
+    fc = _json_load(tmp_path / "m.geojson")
+    assert info["features"] == len(foret.MIXED_CODES)
+    assert {f["properties"]["t"] for f in fc["features"]} == {"melange", "ouverte"}
+    assert all(f["properties"]["z"] == 1800 for f in fc["features"])
+
+
+def _json_load(path):
+    import json as _json
+    return _json.loads(path.read_text())
+
+
+def test_cql_bbox_is_lon_lat():
+    from larch import foret
+    assert foret.cql("FO2", (5.5, 43.7, 7.8, 46.5)) == \
+        "code_tfv='FO2' AND BBOX(geom,5.5,43.7,7.8,46.5,'CRS:84')"

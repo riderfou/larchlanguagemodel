@@ -109,25 +109,40 @@ Trois sources, la plus fiable disponible est affichée :
 
 `site/carte.html` (lien en haut de la page principale) est une carte Leaflet :
 
-- **Mélézins** : forêts fermées de mélèze pur de la **BD Forêt® V2** de l'IGN
-  (code TFV `FF2-63-63`, au moins 75 % de mélèze dans le couvert), soit environ
-  4 800 polygones et 99 000 ha en France, des Alpes du Sud surtout. Clic sur un
-  polygone : surface.
+- **Mélèze pur** (teinte franche) : forêts fermées de mélèze pur de la
+  **BD Forêt® V2** de l'IGN (code TFV `FF2-63-63`, au moins 75 % de mélèze dans
+  le couvert), soit environ 4 800 polygones et 99 000 ha en France, des Alpes du
+  Sud surtout. Clic sur un polygone : surface.
+- **Conifères d'altitude, mélèze possible** (teintes claires) : dans les Alpes,
+  au-dessus de 1 400 m, les formations de conifères dont la BD Forêt ne précise
+  pas l'essence : mélange de conifères (`FF2-00-00`, `FF2-90-90`, îlots
+  `FF2-00`) et forêt ouverte de conifères (`FO2`, souvent des mélézins clairs
+  pâturés). Environ 9 400 polygones et 122 000 ha. L'altitude est celle du
+  centre du polygone (RGE ALTI, service d'altimétrie IGN). À l'étage subalpin,
+  ce sont souvent des mélézins mêlés de pin cembro, de pin à crochets ou
+  d'épicéa, mais rien ne garantit la présence du mélèze.
 - **Webcams** : couleur du stade, et au clic la dernière image, l'indice d'or,
-  la date du pic et la surface de mélèze pur à moins de 5 km.
+  la date du pic et les surfaces de mélèze pur et de conifères d'altitude à
+  moins de 5 km.
 - **Fonds IGN** (Géoplateforme, sans clé) : Plan IGN, photographies aériennes,
   ombrage du relief et, pour le contexte, toutes les formations de la BD Forêt V2.
 
-Limite de la donnée : la BD Forêt V2 ne nomme le mélèze que dans les
-peuplements purs. Les mélézins mélangés (avec pin cembro, épicéa…), fréquents en
-Savoie et Haute-Savoie, sont classés « mélange de conifères » ou « forêt ouverte
-de conifères » : ils n'apparaissent que dans la couche « Toutes formations ».
+Limites de la donnée : la BD Forêt V2 ne nomme le mélèze que dans les
+peuplements purs. Les mélézins mélangés sont dans les teintes claires, sans
+certitude. Certains mélézins sont même classés autrement : aux Menuires, la
+forêt filmée par la webcam figure en « autre pin pur », « mélange de feuillus »
+ou « forêt ouverte de feuillus ». Le mélèze perd ses aiguilles comme un
+feuillu, ce qui peut tromper la photo-interprétation. Ces classes, trop larges,
+ne sont pas reprises.
 
 Les polygones sont téléchargés une fois par le WFS de la Géoplateforme
-(`larch foret`), simplifiés à 8 m (la BD Forêt est photo-interprétée au
-1/25 000) et enregistrés dans `data/meleze_bdforet_v2.geojson` (7 Mo, ~2 Mo
-compressé). La BD Forêt V2 n'étant plus mise à jour, il n'y a pas à relancer
-cette commande. Données IGN sous Licence Ouverte Etalab 2.0.
+(`larch foret`, ~6 min ; `--only pur|melange`, `--min-elevation 1400`),
+simplifiés à 8–10 m (la BD Forêt est photo-interprétée au 1/25 000) et
+enregistrés dans `data/meleze_bdforet_v2.geojson` (7 Mo) et
+`data/coniferes_altitude_bdforet_v2.geojson` (11 Mo). Sur le site, ils sont
+servis en `.json` compressé (~2 Mo chacun), et les conifères d'altitude se
+chargent après le mélèze pur. La BD Forêt V2 n'étant plus mise à jour, il n'y
+a pas à relancer cette commande. Données IGN sous Licence Ouverte Etalab 2.0.
 
 ## Automatisation (GitHub Actions + GitHub Pages)
 
