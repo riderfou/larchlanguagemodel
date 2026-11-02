@@ -18,7 +18,9 @@ dependencies = [
 [project.optional-dependencies]
 # Pour les webcams sans URL d'image directe (pages JavaScript : Skaping, webcam-hd...)
 browser = ["playwright>=1.40"]
-dev = ["pytest>=7"]
+# Cartographie des mélézins par Sentinel-2 (`larch satellite`)
+satellite = ["rasterio>=1.3", "scipy>=1.10", "scikit-learn>=1.3"]
+dev = ["pytest>=7", "rasterio>=1.3", "scipy>=1.10", "scikit-learn>=1.3"]
 
 [project.scripts]
 larch = "larch.cli:main"

@@ -9,6 +9,7 @@ from pathlib import Path
 # Servis en .json : GitHub Pages compresse ce type à coup sûr (≈ 4 fois moins lourd).
 GEOJSON_NAME = "meleze.json"
 MIXED_NAME = "coniferes.json"
+SAT_NAME = "satellite.json"
 NEARBY_KM = 5.0
 
 
@@ -113,6 +114,8 @@ for (const c of CAMS) {
   const gold = c.gold_index == null ? "—" : Math.round(c.gold_index);
   const near = (c.larch_nearby_ha == null ? "" :
     `<div class="muted">Mélèze pur à moins de ${NEARBY_KM} km : ${fr.format(c.larch_nearby_ha)} ha</div>`) +
+    (c.sat_nearby_ha == null ? "" :
+    `<div class="muted">Mélèze détecté par satellite : ${fr.format(c.sat_nearby_ha)} ha</div>`) +
     (c.mixed_nearby_ha == null ? "" :
     `<div class="muted">Conifères d'altitude (mélèze possible) : ${fr.format(c.mixed_nearby_ha)} ha</div>`);
   m.bindPopup(`<h3>${esc(c.name)}</h3>
@@ -158,6 +161,19 @@ const melange = mixedLayer("melange"), ouverte = mixedLayer("ouverte");
 const HAS_MIXED = __HAS_MIXED__;
 if (HAS_MIXED) { ouverte.addTo(map); melange.addTo(map); }
 
+const SAT = __SAT__;
+const sat = L.geoJSON(null, {
+  style: () => ({color: "#a8380b", weight: 0.6, fillColor: "#e8590c", fillOpacity: 0.5}),
+  onEachFeature: (f, l) => l.bindPopup(
+    `<h3>Mélèze détecté par satellite</h3>
+     <div><span class="big">${fr.format(f.properties.ha)}</span> <span class="muted">ha · vers ${fr.format(f.properties.z)} m</span></div>
+     <div>Confiance moyenne : <b>${f.properties.p} %</b></div>
+     <div class="muted" style="margin-top:4px">Sentinel-2 (Copernicus) : vert en été, doré en octobre ${SAT.annee}.
+       Classifieur appris sur la BD Forêt V2 ; sur des zones de contrôle, il retrouve
+       ${Math.round(SAT.rappel * 100)} % du mélèze pur et ${Math.round(SAT.precision * 100)} % de ses détections sont justes.</div>`)
+});
+if (SAT) sat.addTo(map);
+
 const larch = L.geoJSON(null, {
   style: () => larchStyle,
   onEachFeature: (f, l) => l.bindPopup(
@@ -170,6 +186,7 @@ larch.addTo(map);
 const layers = L.control.layers(
   {"Plan IGN": plan, "Photographies aériennes": ortho},
   Object.assign({"Mélèze pur (BD Forêt V2)": larch},
+   SAT ? {[`Mélèze détecté par satellite (Sentinel-2, ${SAT.annee})`]: sat} : {},
    HAS_MIXED ? {"Mélange de conifères ≥ __MINZ__ m (mélèze possible)": melange,
                 "Forêt ouverte de conifères ≥ __MINZ__ m (mélèze possible)": ouverte} : {},
    {"Toutes formations forestières (BD Forêt V2)": foretV2,
@@ -180,30 +197,37 @@ const layers = L.control.layers(
 map.on("overlayadd", () => camLayer.eachLayer(l => l.bringToFront && l.bringToFront()));
 
 const status = document.getElementById("status");
-fetch("__GEOJSON__").then(r => {
-  if (!r.ok) throw new Error(r.status + " " + r.statusText);
+const getJSON = url => fetch(url).then(r => {
+  if (!r.ok) throw new Error(url + " : " + r.status + " " + r.statusText);
   return r.json();
-}).then(fc => {
+});
+const parts = [];
+getJSON("__GEOJSON__").then(fc => {
   larch.addData(fc);
   camLayer.eachLayer(l => l.bringToFront());
   const ha = fc.features.reduce((s, f) => s + (f.properties.ha || 0), 0);
-  status.textContent = `${fr.format(fc.features.length)} forêts de mélèze pur · ${fr.format(Math.round(ha))} ha`;
-  if (!HAS_MIXED) { setTimeout(() => status.remove(), 4000); return; }
-  status.textContent += " · chargement des conifères d'altitude…";
-  // Après le mélèze pur : la carte est utilisable pendant ce second chargement.
-  return fetch("__MIXED__").then(r => {
-    if (!r.ok) throw new Error(r.status + " " + r.statusText);
-    return r.json();
-  }).then(mx => {
-    melange.addData(mx); ouverte.addData(mx);
-    larch.bringToFront();
-    camLayer.eachLayer(l => l.bringToFront());
-    status.textContent = `${fr.format(fc.features.length)} forêts de mélèze pur · ` +
-      `${fr.format(mx.features.length)} forêts de conifères d'altitude`;
-    setTimeout(() => status.remove(), 4000);
-  });
+  parts.push(`${fr.format(fc.features.length)} forêts de mélèze pur`);
+  status.textContent = parts.join(" · ") + ((HAS_MIXED || SAT) ? " · chargement…" : "");
+  // Couches secondaires après le mélèze pur : la carte est utilisable pendant ce temps.
+  return Promise.all([
+    SAT ? getJSON("__SAT_FILE__").then(sf => {
+      sat.addData(sf);
+      parts.push(`${fr.format(sf.features.length)} zones détectées par satellite`);
+    }) : null,
+    HAS_MIXED ? getJSON("__MIXED__").then(mx => {
+      melange.addData(mx); ouverte.addData(mx);
+      parts.push(`${fr.format(mx.features.length)} forêts de conifères d'altitude`);
+    }) : null,
+  ]);
+}).then(() => {
+  // Ordre d'affichage : conifères d'altitude < satellite < mélèze pur < webcams
+  if (SAT) sat.bringToFront();
+  larch.bringToFront();
+  camLayer.eachLayer(l => l.bringToFront());
+  status.textContent = parts.join(" · ");
+  setTimeout(() => status.remove(), 5000);
 }).catch(e => {
-  status.textContent = "Mélézins indisponibles (" + e.message + ")";
+  status.textContent = "Couche indisponible (" + e.message + ")";
 });
 
 // --- Légende -----------------------------------------------------------------
@@ -216,7 +240,8 @@ legend.onAdd = () => {
     <b>Mélézins</b><span class="sw" style="background:#e8a317;border:1px solid #9a5b00"></span>Forêt fermée de mélèze pur<br>` +
     (HAS_MIXED ? `<span class="sw" style="background:#f2d38a;border:1px solid #c99a3a"></span>Mélange de conifères*<br>
     <span class="sw" style="background:#f8e7bd;border:1px solid #d6b56a"></span>Forêt ouverte de conifères*<br>
-    <span class="muted">* ≥ __MINZ__ m, mélèze possible</span><br>` : "") + `
+    <span class="muted">* ≥ __MINZ__ m, mélèze possible</span><br>` : "") +
+    (SAT ? `<span class="sw" style="background:#e8590c;border:1px solid #a8380b"></span>Détecté par satellite (${SAT.annee})<br>` : "") + `
     <b style="margin-top:4px">Webcams</b>` +
     Object.entries(STAGES).filter(([k]) => CAMS.some(c => c.stage === k) || k !== "inconnu")
       .map(([, [label, color]]) => `<span class="sw dot" style="background:${color}"></span>${esc(label)}`).join("<br>") +
@@ -230,7 +255,7 @@ legend.addTo(map);
 
 
 def render_map(cams: list[dict], stages: dict, out_dir: Path, larch_geojson: Path | None,
-               mixed_geojson: Path | None = None) -> Path:
+               mixed_geojson: Path | None = None, sat_geojson: Path | None = None) -> Path:
     """Écrit `carte.html` (et copie les GeoJSON des mélézins) dans `out_dir`."""
     out_dir.mkdir(parents=True, exist_ok=True)
     cams = [dict(c) for c in cams]
@@ -251,8 +276,22 @@ def render_map(cams: list[dict], stages: dict, out_dir: Path, larch_geojson: Pat
         near = larch_nearby(mixed, cams)
         for c in cams:
             c["mixed_nearby_ha"] = near.get(c["id"])
+    sat_meta = None
+    if sat_geojson and sat_geojson.exists():
+        sat = json.loads(sat_geojson.read_bytes())
+        # Le fichier publié ne garde que les polygones (les métadonnées vont dans la page).
+        light = {"type": "FeatureCollection", "features": sat["features"]}
+        (out_dir / SAT_NAME).write_text(json.dumps(light, ensure_ascii=False, separators=(",", ":")),
+                                        encoding="utf-8")
+        val = sat.get("validation", {})
+        best = next((r for r in val.get("seuils", []) if r["seuil"] == val.get("seuil_retenu")), {})
+        sat_meta = {"annee": sat.get("annee"), "precision": best.get("precision"),
+                    "rappel": best.get("rappel")}
+        near = larch_nearby(sat, cams)
+        for c in cams:
+            c["sat_nearby_ha"] = near.get(c["id"])
     keep = ("id", "name", "lat", "lon", "elevation", "stage", "gold_index", "peak", "peak_source",
-            "image", "larch_nearby_ha", "mixed_nearby_ha")
+            "image", "larch_nearby_ha", "mixed_nearby_ha", "sat_nearby_ha")
     payload = [{k: c.get(k) for k in keep} for c in cams]
 
     def js(obj) -> str:  # JSON sûr dans un <script>
@@ -264,6 +303,8 @@ def render_map(cams: list[dict], stages: dict, out_dir: Path, larch_geojson: Pat
            .replace("__GEOJSON__", html.escape(GEOJSON_NAME))
            .replace("__MIXED__", html.escape(MIXED_NAME))
            .replace("__HAS_MIXED__", js(has_mixed))
+           .replace("__SAT_FILE__", html.escape(SAT_NAME))
+           .replace("__SAT__", js(sat_meta))
            .replace("__MINZ__", f"{int(min_z // 100 * 100)}"))
     path = out_dir / "carte.html"
     path.write_text(doc, encoding="utf-8")

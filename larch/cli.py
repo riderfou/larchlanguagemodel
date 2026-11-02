@@ -1,4 +1,4 @@
-"""Ligne de commande : larch fetch | report | run | analyze | roi | calibrate | foret."""
+"""Ligne de commande : larch fetch | report | run | analyze | roi | calibrate | foret | satellite."""
 from __future__ import annotations
 
 import argparse
@@ -8,6 +8,7 @@ from datetime import date, datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+import numpy as np
 from PIL import Image, ImageDraw
 
 from . import analysis, phenology, store, weather
@@ -18,6 +19,7 @@ from .report import CamReport, render
 ARCHIVE_WIDTH = 800
 LARCH_GEOJSON = "meleze_bdforet_v2.geojson"   # dans le dossier data/ (voir `larch foret`)
 MIXED_GEOJSON = "coniferes_altitude_bdforet_v2.geojson"
+SATELLITE_GEOJSON = "meleze_sentinel2.geojson"
 
 
 def _now(cfg: Config) -> datetime:
@@ -137,7 +139,7 @@ def build_reports(cfg: Config, args) -> list[CamReport]:
 def cmd_report(cfg: Config, args) -> int:
     reports = build_reports(cfg, args)
     path = render(reports, _now(cfg), Path(args.site), Path(args.data) / LARCH_GEOJSON,
-                  Path(args.data) / MIXED_GEOJSON)
+                  Path(args.data) / MIXED_GEOJSON, Path(args.data) / SATELLITE_GEOJSON)
     for r in reports:
         peak, src = r.peak_summary()
         print(f"[{r.id}] {phenology.STAGES[r.stage][0]} · pic : {peak} ({src})")
@@ -161,6 +163,48 @@ def cmd_foret(cfg: Config, args) -> int:
         info = foret.build_mixed(out, tol_m=args.tolerance_mixed, min_elevation=args.min_elevation)
         print(f"→ {out} : {info['features']} polygones (sur {info['downloaded']}), "
               f"{info['hectares']} ha, {info['bytes'] / 1e6:.1f} Mo")
+    return 0
+
+
+def cmd_satellite(cfg: Config, args) -> int:
+    """Cartographie des mélézins par Sentinel-2 (été + automne), apprise sur la BD Forêt."""
+    from . import foret
+    from . import sentinel as s2
+    cache = Path(args.cache)
+    tiles = args.tiles.split(",") if args.tiles else s2.ALPS_TILES
+    print(f"Sentinel-2 {args.year} : tuiles {', '.join(tiles)}")
+    centers = s2.tile_centers(sorted(set(s2.ALPS_TILES) | set(tiles)), args.year)
+    npzs = []
+    for t in tiles:
+        try:
+            npzs.append(s2.prepare_tile(t, args.year, cache, centers, n_autumn=args.autumn_dates))
+        except Exception as e:  # noqa: BLE001
+            print(f"[{t}] ignorée : {e}", file=sys.stderr)
+    if not npzs:
+        return 1
+    print("Apprentissage (BD Forêt V2 : mélèze pur contre sapin/épicéa, pins, feuillus, landes)…")
+    model, rep = s2.train_all(npzs)
+    best = next(r for r in rep["seuils"] if r["seuil"] == rep["seuil_retenu"])
+    print(f"Validation (blocs de 10 km écartés, proportions réelles) : seuil {best['seuil']}, "
+          f"précision {best['precision']:.0%}, rappel {best['rappel']:.0%}")
+    threshold = int(round(rep["seuil_retenu"] * 100))
+    feats, dates = [], {}
+    for npz in npzs:
+        prob, grid, z = s2.predict_tile(model, npz)
+        f = s2.vectorize(prob, grid, z, threshold)
+        feats += f
+        tile = npz.name.split("_")[0]
+        dates[tile] = [str(d) for d in np.load(npz)["dates"]]
+        print(f"[{tile}] {len(f)} zones, {sum(x['properties']['ha'] for x in f):.0f} ha")
+    out = Path(args.data) / SATELLITE_GEOJSON
+    fc = {"type": "FeatureCollection", "name": "meleze_sentinel2",
+          "source": ("Mélèze détecté par Sentinel-2 (Copernicus, L2A) : comparaison été / automne "
+                     f"{args.year}, classifieur appris sur la BD Forêt V2 (IGN)"),
+          "annee": args.year, "dates": dates, "validation": rep, "seuil": threshold,
+          "features": feats}
+    out.write_text(json.dumps(fc, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+    print(f"→ {out} : {len(feats)} zones, {sum(f['properties']['ha'] for f in feats):.0f} ha, "
+          f"{out.stat().st_size / 1e6:.1f} Mo")
     return 0
 
 
@@ -269,13 +313,19 @@ def main(argv: list[str] | None = None) -> int:
                     help="simplification des conifères d'altitude (m)")
     fo.add_argument("--min-elevation", type=float, default=1400.0,
                     help="altitude minimale des conifères sans essence précisée (m)")
+    sa = sub.add_parser("satellite", help="cartographie les mélézins par Sentinel-2 (long : ~1 h)")
+    sa.add_argument("--year", type=int, default=date.today().year)
+    sa.add_argument("--tiles", help="tuiles Sentinel-2, ex. 31TGL,32TLR (défaut : Alpes françaises)")
+    sa.add_argument("--autumn-dates", type=int, default=4, help="nombre d'images d'automne par tuile")
+    sa.add_argument("--cache", default=".cache/sentinel2", help="variables par tuile (~2 Go chacune)")
     c = sub.add_parser("calibrate", help="ajuste le modèle sur les pics observés")
     c.add_argument("--cam")
 
     args = p.parse_args(argv)
     cfg = load_config(args.config)
     return {"fetch": cmd_fetch, "report": cmd_report, "run": cmd_run, "analyze": cmd_analyze,
-            "roi": cmd_roi, "calibrate": cmd_calibrate, "foret": cmd_foret}[args.cmd](cfg, args)
+            "roi": cmd_roi, "calibrate": cmd_calibrate, "foret": cmd_foret,
+            "satellite": cmd_satellite}[args.cmd](cfg, args)
 
 
 if __name__ == "__main__":

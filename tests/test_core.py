@@ -239,3 +239,59 @@ def test_cql_bbox_is_lon_lat():
     from larch import foret
     assert foret.cql("FO2", (5.5, 43.7, 7.8, 46.5)) == \
         "code_tfv='FO2' AND BBOX(geom,5.5,43.7,7.8,46.5,'CRS:84')"
+
+
+# --- Sentinel-2 (hors ligne) ---------------------------------------------------
+
+def test_pick_scenes_prefers_clear_full_tiles():
+    from larch.sentinel import Scene, pick_scenes
+    sc = [Scene("31TGL", d, "p/", c, 0, n) for d, c, n in [
+        ("2026-07-04", 1.0, 0), ("2026-07-05", 0.0, 58), ("2026-07-24", 0.0, 0), ("2026-10-12", 0.0, 0)]]
+    best = pick_scenes(sc, "2026-07-01", "2026-08-31", 2, 1, max_nodata=5)
+    assert [s.date for s in best] == ["2026-07-24"]
+
+
+def test_features_capture_autumn_yellowing():
+    from larch import sentinel as s2
+    n = 4
+    green = {"blue": .03, "green": .07, "red": .04, "re1": .1, "re2": .25, "re3": .3, "nir": .35,
+             "nir2": .36, "swir1": .15, "swir2": .07}
+    summer = {k: np.full(n, v, np.float32) for k, v in green.items()}
+    gold = {"blue": .04, "green": .09, "red": .10, "re1": .13, "re2": .18, "nir": .22, "swir1": .2}
+    # pixels : mélèze doré, mélèze doré, épicéa (reste vert), nuage
+    autumn = [{k: np.array([gold[k], gold[k], green[k], np.nan], np.float32) for k in gold}]
+    X, names = s2.features(summer, autumn, np.full(n, 1800, np.float32))
+    col = dict(zip(names, X.T))
+    assert X.shape == (n, len(names))
+    assert col["delta_ndvi"][0] < -0.2 and abs(col["delta_ndvi"][2]) < 0.01  # le mélèze perd du NDVI
+    assert col["aut_rouge_vert_max"][0] > col["aut_rouge_vert_max"][2]   # et rougit
+    assert np.isnan(col["aut_ndvi_min"][3])                              # date nuageuse : NaN
+
+
+def test_evaluate_uses_weights():
+    from larch.sentinel import LARCH, evaluate
+
+    class Fixed:
+        def predict_proba(self, X):
+            p = X[:, 0]
+            return np.column_stack([1 - p, p])
+
+    # 10 mélèzes bien vus, 10 épicéas échantillonnés au 1/10 dont 1 fausse alarme
+    X = np.array([[0.95]] * 10 + [[0.95]] + [[0.1]] * 9)
+    y = np.array([LARCH] * 10 + [2] * 10)
+    w = np.array([1.0] * 10 + [10.0] * 10)
+    r = next(r for r in evaluate(Fixed(), X, y, w)["seuils"] if r["seuil"] == 0.9)
+    assert r["rappel"] == 1.0 and r["precision"] == 0.5                  # 10 vrais / (10 + 1×10)
+
+
+def test_vectorize_keeps_stands_and_drops_specks():
+    from affine import Affine
+    from larch.sentinel import Grid, vectorize
+    grid = Grid("EPSG:32632", Affine(20, 0, 300000, 0, -20, 5000000), 60, 60)
+    prob = np.zeros((60, 60), np.uint8)
+    prob[10:30, 10:25] = 95          # peuplement de 20 x 15 px = 12 ha
+    prob[50, 50] = 99                # pixel isolé : ignoré
+    feats = vectorize(prob, grid, np.full((60, 60), 1900.0), threshold=90)
+    assert len(feats) == 1
+    assert 11 < feats[0]["properties"]["ha"] < 13
+    assert feats[0]["properties"]["p"] == 95 and feats[0]["properties"]["z"] == 1900

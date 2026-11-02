@@ -196,7 +196,8 @@ footer{margin-top:28px;font-size:.85rem;color:var(--muted)}
 
 
 def render(cams: list[CamReport], generated: datetime, out_dir: Path,
-           larch_geojson: Path | None = None, mixed_geojson: Path | None = None) -> Path:
+           larch_geojson: Path | None = None, mixed_geojson: Path | None = None,
+           sat_geojson: Path | None = None) -> Path:
     today = generated.date()
     out_dir.mkdir(parents=True, exist_ok=True)
     ranked = sorted((c for c in cams if c.gold is not None and c.stage != "declin"),
@@ -231,5 +232,5 @@ Prévisions indicatives : éclairage, neige et nuages influencent les mesures.</
     (out_dir / "latest.json").write_text(json.dumps(
         {"generated": generated.isoformat(timespec="minutes"),
          "cams": cams_json}, ensure_ascii=False, indent=1), encoding="utf-8")
-    render_map(cams_json, STAGES, out_dir, larch_geojson, mixed_geojson)
+    render_map(cams_json, STAGES, out_dir, larch_geojson, mixed_geojson, sat_geojson)
     return path

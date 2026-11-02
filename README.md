@@ -37,6 +37,7 @@ Autres commandes :
 | `larch roi saint-veran` | image quadrillée pour tracer les zones de mélèzes |
 | `larch calibrate` | ajuste le modèle de prévision sur les pics observés |
 | `larch foret` | (re)télécharge les mélézins de la BD Forêt V2 pour la carte |
+| `larch satellite` | cartographie les mélézins par Sentinel-2 (~1 h, une fois par automne) |
 
 ## Configurer les webcams (`cams.yaml`)
 
@@ -143,6 +144,49 @@ enregistrés dans `data/meleze_bdforet_v2.geojson` (7 Mo) et
 servis en `.json` compressé (~2 Mo chacun), et les conifères d'altitude se
 chargent après le mélèze pur. La BD Forêt V2 n'étant plus mise à jour, il n'y
 a pas à relancer cette commande. Données IGN sous Licence Ouverte Etalab 2.0.
+
+## Mélézins détectés par satellite (Sentinel-2)
+
+La BD Forêt passe à côté de nombreux mélézins (mélanges, erreurs de
+photo-interprétation). `larch satellite` les cherche directement dans les
+images Sentinel-2, en exploitant ce qui distingue le mélèze des autres
+conifères : **vert en été, doré en octobre, puis sans aiguilles**.
+
+1. **Images** : pour chacune des 7 tuiles Sentinel-2 des Alpes françaises
+   (31TGJ, 31TGK, 31TGL, 31TGM, 32TLP, 32TLQ, 32TLR), une image d'été sans
+   nuages (juillet-août) et les 4 images les plus claires de
+   octobre-début novembre de l'année. Données L2A « collection 1 » en COG,
+   lues directement sur le bucket public AWS (aucun compte), à 20 m. Nuages,
+   ombres et neige sont écartés pixel par pixel (couche SCL).
+2. **Variables** : réflectances d'été et médiane d'automne, NDVI, chute du NDVI
+   et rougissement (rouge/vert) entre été et automne, indice de jaunissement
+   maximal, altitude (Copernicus DEM), et moyennes locales sur 60 et 140 m
+   (un mélézin est un peuplement, pas un pixel).
+3. **Apprentissage** : la BD Forêt V2 fournit les exemples : mélèze pur contre
+   sapin/épicéa, pins, feuillus, landes et prairies. Classifieur par gradient
+   boosting (scikit-learn).
+4. **Validation** : un bloc de 10 km sur quatre est écarté de l'apprentissage ;
+   on y mesure précision et rappel dans les proportions réelles (le mélèze pur
+   est très minoritaire), ce qui fixe le seuil de décision.
+5. **Carte** : la prédiction est faite sur toute la forêt (masque « arbres »
+   d'ESA WorldCover), les zones d'au moins 0,5 ha sont vectorisées dans
+   `data/meleze_sentinel2.geojson` (couche orange de la carte).
+
+__RESULTATS__
+
+```bash
+pip install -e '.[satellite]'
+```
+
+```bash
+larch satellite --year 2026
+```
+
+Le cache (`.cache/sentinel2`, ~2 Go par tuile) permet de relancer
+l'apprentissage sans tout retélécharger. Domaines contactés :
+`e84-earth-search-sentinel-data.s3.us-west-2.amazonaws.com`,
+`esa-worldcover.s3.eu-central-1.amazonaws.com`,
+`copernicus-dem-30m.s3.amazonaws.com`, `data.geopf.fr`.
 
 ## Automatisation (GitHub Actions + GitHub Pages)
 
