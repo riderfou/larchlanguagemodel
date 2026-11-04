@@ -1,6 +1,6 @@
 {
  "bessans-relais": {
-  "time": "2026-11-03T18:08",
+  "time": "2026-11-04T18:20",
   "error": null,
   "measure": {
    "valid": false,
@@ -10,16 +10,16 @@
    "yellow": 0,
    "orange": 0,
    "brown": 0,
-   "veg_share": 0.0004791853848457622,
+   "veg_share": 0.01010282519716482,
    "gcc": NaN,
    "rcc": NaN,
    "mean_rgb": "#000000",
-   "brightness": 0.5218718647956848,
+   "brightness": 0.10718471556901932,
    "roi_pixels": 50085
   }
  },
  "serre-chevalier-mea": {
-  "time": "2026-11-03T18:08",
+  "time": "2026-11-04T18:20",
   "error": null,
   "measure": {
    "valid": false,
@@ -29,16 +29,16 @@
    "yellow": 0,
    "orange": 0,
    "brown": 0,
-   "veg_share": 0.0009596928982725527,
+   "veg_share": 0.0,
    "gcc": NaN,
    "rcc": NaN,
    "mean_rgb": "#000000",
-   "brightness": 0.3291403651237488,
+   "brightness": 0.28586241602897644,
    "roi_pixels": 6252
   }
  },
  "saint-veran": {
-  "time": "2026-11-03T18:08",
+  "time": "2026-11-04T18:20",
   "error": null,
   "measure": {
    "valid": false,
@@ -52,12 +52,12 @@
    "gcc": NaN,
    "rcc": NaN,
    "mean_rgb": "#000000",
-   "brightness": 0.23827989399433136,
+   "brightness": 0.2786709666252136,
    "roi_pixels": 316713
   }
  },
  "vars-peynier": {
-  "time": "2026-11-03T18:08",
+  "time": "2026-11-04T18:20",
   "error": null,
   "measure": {
    "valid": false,
@@ -67,16 +67,16 @@
    "yellow": 0,
    "orange": 0,
    "brown": 0,
-   "veg_share": 0.001465845793022574,
+   "veg_share": 0.01664549333854523,
    "gcc": NaN,
    "rcc": NaN,
    "mean_rgb": "#000000",
-   "brightness": 0.1513814777135849,
+   "brightness": 0.27848297357559204,
    "roi_pixels": 30699
   }
  },
  "vars-chabrieres": {
-  "time": "2026-11-03T18:08",
+  "time": "2026-11-04T18:20",
   "error": null,
   "measure": {
    "valid": false,
@@ -86,16 +86,16 @@
    "yellow": 0,
    "orange": 0,
    "brown": 0,
-   "veg_share": 0.001561834445548772,
+   "veg_share": 0.002650385725779734,
    "gcc": NaN,
    "rcc": NaN,
    "mean_rgb": "#000000",
-   "brightness": 0.17248927056789398,
+   "brightness": 0.34155312180519104,
    "roi_pixels": 21129
   }
  },
  "vars-les-claux": {
-  "time": "2026-11-03T18:08",
+  "time": "2026-11-04T18:20",
   "error": null,
   "measure": {
    "valid": false,
@@ -105,16 +105,16 @@
    "yellow": 0,
    "orange": 0,
    "brown": 0,
-   "veg_share": 0.00040351635682374983,
+   "veg_share": 0.007263294422827497,
    "gcc": NaN,
    "rcc": NaN,
    "mean_rgb": "#000000",
-   "brightness": 0.15113011002540588,
+   "brightness": 0.10805456340312958,
    "roi_pixels": 34695
   }
  },
  "serre-chevalier-monetier": {
-  "time": "2026-11-03T18:08",
+  "time": "2026-11-04T18:20",
   "error": null,
   "measure": {
    "valid": false,
@@ -124,49 +124,49 @@
    "yellow": 0,
    "orange": 0,
    "brown": 0,
-   "veg_share": 0.005702127659574468,
+   "veg_share": 0.0014808510638297872,
    "gcc": NaN,
    "rcc": NaN,
    "mean_rgb": "#000000",
-   "brightness": 0.22308067977428436,
+   "brightness": 0.21541427075862885,
    "roi_pixels": 58750
   }
  },
  "les-menuires-foret": {
-  "time": "2026-11-03T18:08",
-  "error": null,
-  "measure": {
-   "valid": true,
-   "reason": "",
-   "gold_index": 36.4,
-   "green": 0.636,
-   "yellow": 0.024,
-   "orange": 0.34,
-   "brown": 0.319,
-   "veg_share": 0.053,
-   "gcc": 0.3806,
-   "rcc": 0.4192,
-   "mean_rgb": "#5e5c4a",
-   "brightness": 0.353,
-   "roi_pixels": 180665
-  }
- },
- "chamonix-lognan": {
-  "time": "2026-11-03T18:08",
+  "time": "2026-11-04T18:20",
   "error": null,
   "measure": {
    "valid": false,
-   "reason": "trop peu de végétation visible (neige, brouillard ou ROI mal placée ?)",
+   "reason": "image trop sombre (nuit ?)",
    "gold_index": NaN,
    "green": 0,
    "yellow": 0,
    "orange": 0,
    "brown": 0,
-   "veg_share": 0.003149076678488443,
+   "veg_share": 0,
    "gcc": NaN,
    "rcc": NaN,
    "mean_rgb": "#000000",
-   "brightness": 0.13786397874355316,
+   "brightness": 0.05695236101746559,
+   "roi_pixels": 180665
+  }
+ },
+ "chamonix-lognan": {
+  "time": "2026-11-04T18:20",
+  "error": null,
+  "measure": {
+   "valid": true,
+   "reason": "",
+   "gold_index": 96.2,
+   "green": 0.038,
+   "yellow": 0.666,
+   "orange": 0.295,
+   "brown": 0.383,
+   "veg_share": 0.155,
+   "gcc": 0.4292,
+   "rcc": 0.5849,
+   "mean_rgb": "#876819",
+   "brightness": 0.155,
    "roi_pixels": 32708
   }
  }
