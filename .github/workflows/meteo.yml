@@ -2,9 +2,13 @@ name: Météo des mélèzes
 
 on:
   schedule:
-    # 3 relevés par jour en milieu de journée (UTC), de septembre à novembre.
-    # = 11h17/13h17/14h17 heure d'été, 10h17/12h17/13h17 heure d'hiver.
-    - cron: "17 9,11,12 * 9-11 *"
+    # Toutes les 30 min de 8h à 13h59 UTC, de septembre à novembre. GitHub retarde
+    # (parfois de plusieurs heures) ou abandonne une partie des exécutions
+    # planifiées : avec de nombreux créneaux, quelques-uns tombent dans la plage
+    # utile. `--daylight-only` ignore le relevé des webcams hors de la plage
+    # 10h-15h (heure de Paris, settings.daylight_hours) ; le suivi Sentinel-2 et
+    # la page sont mis à jour à chaque fois.
+    - cron: "7,37 8-13 * 9-11 *"
   workflow_dispatch:
 
 permissions:
@@ -32,7 +36,8 @@ jobs:
       - name: Relevé des webcams
         env:
           WINDY_API_KEY: ${{ secrets.WINDY_API_KEY }}
-        run: larch fetch
+        # Lancement manuel : relevé quelle que soit l'heure.
+        run: larch fetch ${{ github.event_name == 'schedule' && '--daylight-only' || '' }}
       # Masques des zones suivies par satellite (recalculés une fois par an)
       - uses: actions/cache@v4
         with:

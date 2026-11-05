@@ -41,6 +41,13 @@ def _status_path(data: Path) -> Path:
 def cmd_fetch(cfg: Config, args) -> int:
     data = Path(args.data)
     now = _now(cfg)
+    h0, h1 = cfg.settings.daylight_hours
+    if getattr(args, "daylight_only", False) and not (h0 <= now.hour < h1):
+        # Exécutions planifiées : GitHub les retarde parfois de plusieurs heures.
+        # Une image prise hors de la plage horaire ne compte pas pour l'indice du
+        # jour (et la nuit, elle est inexploitable) : inutile de la relever.
+        print(f"{now:%H:%M} (heure locale) hors de la plage {h0}h-{h1}h : relevé des webcams ignoré")
+        return 0
     status = json.loads(_status_path(data).read_text()) if _status_path(data).exists() else {}
     failures = 0
     for cam in _select(cfg, args.cam):
@@ -351,11 +358,15 @@ def main(argv: list[str] | None = None) -> int:
     f = sub.add_parser("fetch", help="récupère et analyse les images")
     f.add_argument("--cam")
     f.add_argument("--no-archive", dest="archive", action="store_false")
+    f.add_argument("--daylight-only", action="store_true",
+                       help="ne relève les webcams que dans la plage horaire settings.daylight_hours")
     r = sub.add_parser("report", help="génère la page HTML")
     r.add_argument("--no-weather", action="store_true")
     run = sub.add_parser("run", help="fetch + report")
     run.add_argument("--cam")
     run.add_argument("--no-archive", dest="archive", action="store_false")
+    run.add_argument("--daylight-only", action="store_true",
+                       help="ne relève les webcams que dans la plage horaire settings.daylight_hours")
     run.add_argument("--no-weather", action="store_true")
     a = sub.add_parser("analyze", help="analyse une image locale")
     a.add_argument("image")

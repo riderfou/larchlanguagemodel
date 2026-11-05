@@ -385,3 +385,16 @@ def test_compare_webcam_and_satellite():
     sat = [DailyPoint(_d(2026, 10, d), v, 1, 0.4, "#888", 1) for d, v in ((12, 40), (15, 70), (25, 90))]
     k = compare(cam, sat)
     assert k == {"jours": 2, "ecart_moyen": 10.0, "ecart_absolu": 10.0}
+
+
+def test_fetch_daylight_only_skips_outside_hours(tmp_path, monkeypatch):
+    from datetime import datetime as _dt
+    from larch import cli
+
+    def boom(*a, **k):
+        raise AssertionError("aucune webcam ne doit être relevée hors de la plage horaire")
+
+    monkeypatch.setattr(cli, "fetch_cam", boom)
+    monkeypatch.setattr(cli, "_now", lambda cfg: _dt(2026, 11, 4, 18, 20))
+    assert cli.main(["--data", str(tmp_path), "fetch", "--daylight-only"]) == 0
+    assert not (tmp_path / "history.csv").exists()
