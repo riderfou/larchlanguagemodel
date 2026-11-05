@@ -26,3 +26,12 @@ timestamp,cam,valid,reason,gold_index,green,yellow,orange,brown,veg_share,gcc,rc
 2026-11-04T18:20,serre-chevalier-monetier,0,"trop peu de végétation visible (neige, brouillard ou ROI mal placée ?)",nan,0,0,0,0,0.0014808510638297872,nan,nan,#000000,0.21541427075862885
 2026-11-04T18:20,les-menuires-foret,0,image trop sombre (nuit ?),nan,0,0,0,0,0,nan,nan,#000000,0.05695236101746559
 2026-11-04T18:20,chamonix-lognan,1,,96.2,0.038,0.666,0.295,0.383,0.155,0.4292,0.5849,#876819,0.155
+2026-11-05T14:04,bessans-relais,0,"trop peu de végétation visible (neige, brouillard ou ROI mal placée ?)",nan,0,0,0,0,0.0,nan,nan,#000000,0.7245749235153198
+2026-11-05T14:04,serre-chevalier-mea,0,"trop peu de végétation visible (neige, brouillard ou ROI mal placée ?)",nan,0,0,0,0,0.0,nan,nan,#000000,0.6043880581855774
+2026-11-05T14:04,saint-veran,1,,100.0,0.0,0.0,1.0,0.032,0.187,0.3162,0.6806,#7e3e17,0.348
+2026-11-05T14:04,vars-peynier,0,"trop peu de végétation visible (neige, brouillard ou ROI mal placée ?)",nan,0,0,0,0,0.0,nan,nan,#000000,0.41620782017707825
+2026-11-05T14:04,vars-chabrieres,0,"image sans contraste (brouillard, nuage ?)",nan,0,0,0,0,0,nan,nan,#000000,0.5686333179473877
+2026-11-05T14:04,vars-les-claux,0,"trop peu de végétation visible (neige, brouillard ou ROI mal placée ?)",nan,0,0,0,0,0.0,nan,nan,#000000,0.39365115761756897
+2026-11-05T14:04,serre-chevalier-monetier,0,"trop peu de végétation visible (neige, brouillard ou ROI mal placée ?)",nan,0,0,0,0,1.7021276595744682e-05,nan,nan,#000000,0.49721720814704895
+2026-11-05T14:04,les-menuires-foret,1,,31.8,0.682,0.176,0.143,0.262,0.119,0.3902,0.4314,#504f38,0.249
+2026-11-05T14:04,chamonix-lognan,0,"trop peu de végétation visible (neige, brouillard ou ROI mal placée ?)",nan,0,0,0,0,0.010700745994863642,nan,nan,#000000,0.19412750005722046
