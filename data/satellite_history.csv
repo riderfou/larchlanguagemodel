@@ -593,3 +593,13 @@ timestamp,cam,valid,reason,gold_index,green,yellow,orange,brown,veg_share,gcc,rc
 2026-10-30T11:38,s2:chamonix-lognan,1,,46.5,,,,,0.836,0.438,0.369,#505e2a,0.0281,sentinel-2-c1-l2a/32/T/LR/2026/10/S2C_T32TLR_20261030T103714_L2A/,32TLR,0.482,5939,25065,0.735,0.098,0.0422,0.9106,1.0008
 2026-11-01T11:38,s2:chamonix-lognan,1,,34.5,,,,,0.858,0.4595,0.3933,#4a561c,0.0246,sentinel-2-c1-l2a/32/T/LR/2026/11/S2A_T32TLR_20261101T103802_L2A/,32TLR,0.459,5656,22535,0.752,0.1028,0.0614,0.9306,1.0092
 2026-11-01T11:28,s2:chamonix-lognan,0,"nuages, ombre ou neige (0 % du mélèze visible)",,,,,,,,,,,sentinel-2-c1-l2a/32/T/LR/2026/11/S2B_T32TLR_20261101T102345_L2A/,32TLR,0.0,0,0,,,,,
+2026-11-07T11:48,s2:serre-chevalier-mea,0,"nuages, ombre ou neige (0 % du mélèze visible)",,,,,,,,,,,sentinel-2-c1-l2a/31/T/GK/2026/11/S2B_T31TGK_20261107T104141_L2A/,31TGK,0.0,0,0,,,,,
+2026-11-07T11:48,s2:vars-chabrieres,0,"nuages, ombre ou neige (0 % du mélèze visible)",,,,,,,,,,,sentinel-2-c1-l2a/31/T/GK/2026/11/S2B_T31TGK_20261107T104141_L2A/,31TGK,0.0,0,0,,,,,
+2026-11-07T11:48,s2:vars-les-claux,0,"nuages, ombre ou neige (0 % du mélèze visible)",,,,,,,,,,,sentinel-2-c1-l2a/31/T/GK/2026/11/S2B_T31TGK_20261107T104141_L2A/,31TGK,0.0,0,0,,,,,
+2026-11-07T11:48,s2:serre-chevalier-monetier,0,"nuages, ombre ou neige (0 % du mélèze visible)",,,,,,,,,,,sentinel-2-c1-l2a/31/T/GK/2026/11/S2B_T31TGK_20261107T104141_L2A/,31TGK,0.0,0,0,,,,,
+2026-11-07T11:48,s2:claree,0,"nuages, ombre ou neige (0 % du mélèze visible)",,,,,,,,,,,sentinel-2-c1-l2a/31/T/GK/2026/11/S2B_T31TGK_20261107T104141_L2A/,31TGK,0.0,0,0,,,,,
+2026-11-07T11:48,s2:vallouise,0,"nuages, ombre ou neige (0 % du mélèze visible)",,,,,,,,,,,sentinel-2-c1-l2a/31/T/GK/2026/11/S2B_T31TGK_20261107T104141_L2A/,31TGK,0.0,0,0,,,,,
+2026-11-07T11:48,s2:champsaur,0,"nuages, ombre ou neige (0 % du mélèze visible)",,,,,,,,,,,sentinel-2-c1-l2a/31/T/GK/2026/11/S2B_T31TGK_20261107T104141_L2A/,31TGK,0.0,0,0,,,,,
+2026-11-07T11:48,s2:ubaye-praloup,0,"nuages, ombre ou neige (0 % du mélèze visible)",,,,,,,,,,,sentinel-2-c1-l2a/31/T/GK/2026/11/S2B_T31TGK_20261107T104141_L2A/,31TGK,0.0,0,0,,,,,
+2026-11-07T11:48,s2:haut-verdon,0,"nuages, ombre ou neige (0 % du mélèze visible)",,,,,,,,,,,sentinel-2-c1-l2a/31/T/GK/2026/11/S2B_T31TGK_20261107T104141_L2A/,31TGK,0.0,0,0,,,,,
+2026-11-07T11:48,s2:les-menuires-foret,0,"nuages, ombre ou neige (0 % du mélèze visible)",,,,,,,,,,,sentinel-2-c1-l2a/31/T/GL/2026/11/S2B_T31TGL_20261107T104141_L2A/,31TGL,0.0,0,0,,,,,
