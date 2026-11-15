@@ -640,3 +640,32 @@ timestamp,cam,valid,reason,gold_index,green,yellow,orange,brown,veg_share,gcc,rc
 2026-11-11T11:28,s2:haute-ubaye,0,"nuages, ombre ou neige (0 % du mélèze visible)",,,,,,,,,,,sentinel-2-c1-l2a/32/T/LQ/2026/11/S2B_T32TLQ_20261111T102242_L2A/,32TLQ,0.0,0,0,,,,,
 2026-11-11T11:28,s2:haute-tinee,0,"nuages, ombre ou neige (0 % du mélèze visible)",,,,,,,,,,,sentinel-2-c1-l2a/32/T/LQ/2026/11/S2B_T32TLQ_20261111T102242_L2A/,32TLQ,0.0,0,0,,,,,
 2026-11-11T11:28,s2:queyras-abries,0,"nuages, ombre ou neige (0 % du mélèze visible)",,,,,,,,,,,sentinel-2-c1-l2a/32/T/LQ/2026/11/S2B_T32TLQ_20261111T102242_L2A/,32TLQ,0.0,0,0,,,,,
+2026-11-14T11:38,s2:bessans-relais,0,"nuages, ombre ou neige (12 % du mélèze visible)",,,,,,,,,,,sentinel-2-c1-l2a/32/T/LR/2026/11/S2B_T32TLR_20261114T103627_L2A/,32TLR,0.118,1464,719,,,,,
+2026-11-14T11:38,s2:chamonix-lognan,1,,100.0,,,,,0.513,0.3592,0.4334,#786339,0.0362,sentinel-2-c1-l2a/32/T/LR/2026/11/S2B_T32TLR_20261114T103627_L2A/,32TLR,0.359,4419,21959,0.564,0.2791,0.0715,0.7159,0.9776
+2026-11-14T11:38,s2:haute-maurienne-termignon,0,"nuages, ombre ou neige (3 % du mélèze visible)",,,,,,,,,,,sentinel-2-c1-l2a/32/T/LR/2026/11/S2B_T32TLR_20261114T103627_L2A/,32TLR,0.033,476,33952,,,,,
+2026-11-14T11:38,s2:haute-tarentaise,1,,100.0,,,,,0.151,0.3217,0.4182,#ba8f73,0.058,sentinel-2-c1-l2a/32/T/LR/2026/11/S2B_T32TLR_20261114T103627_L2A/,32TLR,0.343,4228,161,0.398,0.3198,0.08,0.5052,0.948
+2026-11-14T11:48,s2:serre-chevalier-mea,0,"nuages, ombre ou neige (0 % du mélèze visible)",,,,,,,,,,,sentinel-2-c1-l2a/31/T/GK/2026/11/S2A_T31TGK_20261114T104521_L2A/,31TGK,0.0,0,0,,,,,
+2026-11-14T11:48,s2:vars-chabrieres,0,"nuages, ombre ou neige (0 % du mélèze visible)",,,,,,,,,,,sentinel-2-c1-l2a/31/T/GK/2026/11/S2A_T31TGK_20261114T104521_L2A/,31TGK,0.0,0,0,,,,,
+2026-11-14T11:48,s2:vars-les-claux,0,"nuages, ombre ou neige (0 % du mélèze visible)",,,,,,,,,,,sentinel-2-c1-l2a/31/T/GK/2026/11/S2A_T31TGK_20261114T104521_L2A/,31TGK,0.0,0,0,,,,,
+2026-11-14T11:48,s2:serre-chevalier-monetier,0,"nuages, ombre ou neige (0 % du mélèze visible)",,,,,,,,,,,sentinel-2-c1-l2a/31/T/GK/2026/11/S2A_T31TGK_20261114T104521_L2A/,31TGK,0.0,0,0,,,,,
+2026-11-14T11:48,s2:claree,0,"nuages, ombre ou neige (0 % du mélèze visible)",,,,,,,,,,,sentinel-2-c1-l2a/31/T/GK/2026/11/S2A_T31TGK_20261114T104521_L2A/,31TGK,0.0,0,0,,,,,
+2026-11-14T11:48,s2:vallouise,0,"nuages, ombre ou neige (0 % du mélèze visible)",,,,,,,,,,,sentinel-2-c1-l2a/31/T/GK/2026/11/S2A_T31TGK_20261114T104521_L2A/,31TGK,0.0,0,0,,,,,
+2026-11-14T11:48,s2:champsaur,0,"nuages, ombre ou neige (0 % du mélèze visible)",,,,,,,,,,,sentinel-2-c1-l2a/31/T/GK/2026/11/S2A_T31TGK_20261114T104521_L2A/,31TGK,0.0,0,0,,,,,
+2026-11-14T11:48,s2:ubaye-praloup,0,"nuages, ombre ou neige (0 % du mélèze visible)",,,,,,,,,,,sentinel-2-c1-l2a/31/T/GK/2026/11/S2A_T31TGK_20261114T104521_L2A/,31TGK,0.0,0,0,,,,,
+2026-11-14T11:48,s2:haut-verdon,0,"nuages, ombre ou neige (0 % du mélèze visible)",,,,,,,,,,,sentinel-2-c1-l2a/31/T/GK/2026/11/S2A_T31TGK_20261114T104521_L2A/,31TGK,0.0,0,0,,,,,
+2026-11-14T11:38,s2:serre-chevalier-mea,1,,100.0,,,,,0.0,0.3273,0.4577,#ffb778,0.0729,sentinel-2-c1-l2a/31/T/GK/2026/11/S2B_T31TGK_20261114T103627_L2A/,31TGK,0.238,7758,19317,0.292,0.3043,0.0067,0.3959,1.0212
+2026-11-14T11:38,s2:vars-chabrieres,1,,100.0,,,,,0.0,0.3248,0.4599,#e09e69,0.0636,sentinel-2-c1-l2a/31/T/GK/2026/11/S2B_T31TGK_20261114T103627_L2A/,31TGK,0.545,14568,7145,0.3,0.3169,0.0026,0.4029,1.0589
+2026-11-14T11:38,s2:vars-les-claux,1,,100.0,,,,,0.0,0.3265,0.4585,#d89a65,0.0617,sentinel-2-c1-l2a/31/T/GK/2026/11/S2B_T31TGK_20261114T103627_L2A/,31TGK,0.609,16614,7581,0.31,0.3126,-0.0,0.4139,1.0622
+2026-11-14T11:38,s2:serre-chevalier-monetier,1,,100.0,,,,,0.0,0.3302,0.4668,#f7af6c,0.0693,sentinel-2-c1-l2a/31/T/GK/2026/11/S2B_T31TGK_20261114T103627_L2A/,31TGK,0.303,11145,4925,0.302,0.3481,0.0298,0.3952,0.9654
+2026-11-14T11:38,s2:claree,0,"nuages, ombre ou neige (9 % du mélèze visible)",,,,,,,,,,,sentinel-2-c1-l2a/31/T/GK/2026/11/S2B_T31TGK_20261114T103627_L2A/,31TGK,0.088,2741,21682,,,,,
+2026-11-14T11:38,s2:vallouise,1,,100.0,,,,,0.111,0.3421,0.4601,#c79455,0.0565,sentinel-2-c1-l2a/31/T/GK/2026/11/S2B_T31TGK_20261114T103627_L2A/,31TGK,0.495,11911,13440,0.388,0.2561,0.0346,0.565,1.1058
+2026-11-14T11:38,s2:champsaur,1,,100.0,,,,,0.368,0.3444,0.5071,#91622a,0.0374,sentinel-2-c1-l2a/31/T/GK/2026/11/S2B_T31TGK_20261114T103627_L2A/,31TGK,0.287,6336,4928,0.496,0.3225,0.0557,0.674,1.0332
+2026-11-14T11:38,s2:ubaye-praloup,0,"nuages, ombre ou neige (9 % du mélèze visible)",,,,,,,,,,,sentinel-2-c1-l2a/31/T/GK/2026/11/S2B_T31TGK_20261114T103627_L2A/,31TGK,0.091,3007,44694,,,,,
+2026-11-14T11:38,s2:haut-verdon,0,voile nuageux (NDVI des témoins à 82 % de l'été),,,,,,,,,,,sentinel-2-c1-l2a/31/T/GK/2026/11/S2B_T31TGK_20261114T103627_L2A/,31TGK,0.28,15337,2001,,,,,
+2026-11-14T11:38,s2:saint-veran,1,,100.0,,,,,0.0,0.3226,0.4428,#ffc48e,0.0793,sentinel-2-c1-l2a/32/T/LQ/2026/11/S2B_T32TLQ_20261114T103627_L2A/,32TLQ,0.286,9340,4984,0.278,0.3677,-0.0188,0.3423,1.0324
+2026-11-14T11:38,s2:vars-peynier,1,,100.0,,,,,0.0,0.3277,0.4338,#d9a477,0.0655,sentinel-2-c1-l2a/32/T/LQ/2026/11/S2B_T32TLQ_20261114T103627_L2A/,32TLQ,0.611,15926,6735,0.305,0.3004,0.011,0.4039,1.0004
+2026-11-14T11:38,s2:haute-ubaye,0,"nuages, ombre ou neige (5 % du mélèze visible)",,,,,,,,,,,sentinel-2-c1-l2a/32/T/LQ/2026/11/S2B_T32TLQ_20261114T103627_L2A/,32TLQ,0.047,1677,26007,,,,,
+2026-11-14T11:38,s2:haute-tinee,0,"nuages, ombre ou neige (13 % du mélèze visible)",,,,,,,,,,,sentinel-2-c1-l2a/32/T/LQ/2026/11/S2B_T32TLQ_20261114T103627_L2A/,32TLQ,0.133,6120,400,,,,,
+2026-11-14T11:38,s2:queyras-abries,1,,100.0,,,,,0.0,0.3325,0.4413,#f0b57b,0.071,sentinel-2-c1-l2a/32/T/LQ/2026/11/S2B_T32TLQ_20261114T103627_L2A/,32TLQ,0.395,25621,2065,0.32,0.2879,0.0072,0.4218,0.9605
+2026-11-14T11:48,s2:les-menuires-foret,0,"nuages, ombre ou neige (0 % du mélèze visible)",,,,,,,,,,,sentinel-2-c1-l2a/31/T/GL/2026/11/S2A_T31TGL_20261114T104521_L2A/,31TGL,0.0,0,0,,,,,
+2026-11-14T11:38,s2:les-menuires-foret,1,,100.0,,,,,0.157,0.3469,0.4468,#a8824d,0.0491,sentinel-2-c1-l2a/31/T/GL/2026/11/S2B_T31TGL_20261114T103627_L2A/,31TGL,0.876,345,3817,0.438,0.3092,-0.0227,0.5593,1.0434
