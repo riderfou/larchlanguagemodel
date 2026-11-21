@@ -687,3 +687,12 @@ timestamp,cam,valid,reason,gold_index,green,yellow,orange,brown,veg_share,gcc,rc
 2026-11-18T11:28,s2:haute-ubaye,0,"nuages, ombre ou neige (0 % du mélèze visible)",,,,,,,,,,,sentinel-2-c1-l2a/32/T/LQ/2026/11/S2A_T32TLQ_20261118T102801_L2A/,32TLQ,0.0,0,0,,,,,
 2026-11-18T11:28,s2:haute-tinee,1,,100.0,,,,,0.034,0.3444,0.4683,#d59d55,0.0595,sentinel-2-c1-l2a/32/T/LQ/2026/11/S2A_T32TLQ_20261118T102801_L2A/,32TLQ,0.419,19285,2662,0.349,0.2823,0.0259,0.4754,1.0138
 2026-11-18T11:28,s2:queyras-abries,0,"nuages, ombre ou neige (0 % du mélèze visible)",,,,,,,,,,,sentinel-2-c1-l2a/32/T/LQ/2026/11/S2A_T32TLQ_20261118T102801_L2A/,32TLQ,0.0,0,0,,,,,
+2026-11-21T11:28,s2:bessans-relais,0,"nuages, ombre ou neige (0 % du mélèze visible)",,,,,,,,,,,sentinel-2-c1-l2a/32/T/LR/2026/11/S2B_T32TLR_20261121T102751_L2A/,32TLR,0.0,0,0,,,,,
+2026-11-21T11:28,s2:chamonix-lognan,0,"nuages, ombre ou neige (0 % du mélèze visible)",,,,,,,,,,,sentinel-2-c1-l2a/32/T/LR/2026/11/S2B_T32TLR_20261121T102751_L2A/,32TLR,0.0,0,0,,,,,
+2026-11-21T11:28,s2:haute-maurienne-termignon,0,"nuages, ombre ou neige (0 % du mélèze visible)",,,,,,,,,,,sentinel-2-c1-l2a/32/T/LR/2026/11/S2B_T32TLR_20261121T102751_L2A/,32TLR,0.0,0,0,,,,,
+2026-11-21T11:28,s2:haute-tarentaise,0,"nuages, ombre ou neige (0 % du mélèze visible)",,,,,,,,,,,sentinel-2-c1-l2a/32/T/LR/2026/11/S2B_T32TLR_20261121T102751_L2A/,32TLR,0.0,0,0,,,,,
+2026-11-21T11:28,s2:saint-veran,0,"nuages, ombre ou neige (0 % du mélèze visible)",,,,,,,,,,,sentinel-2-c1-l2a/32/T/LQ/2026/11/S2B_T32TLQ_20261121T102751_L2A/,32TLQ,0.0,0,0,,,,,
+2026-11-21T11:28,s2:vars-peynier,0,"nuages, ombre ou neige (0 % du mélèze visible)",,,,,,,,,,,sentinel-2-c1-l2a/32/T/LQ/2026/11/S2B_T32TLQ_20261121T102751_L2A/,32TLQ,0.0,0,0,,,,,
+2026-11-21T11:28,s2:haute-ubaye,0,"nuages, ombre ou neige (0 % du mélèze visible)",,,,,,,,,,,sentinel-2-c1-l2a/32/T/LQ/2026/11/S2B_T32TLQ_20261121T102751_L2A/,32TLQ,0.0,0,0,,,,,
+2026-11-21T11:28,s2:haute-tinee,1,,100.0,,,,,0.006,0.3278,0.4516,#d39967,0.061,sentinel-2-c1-l2a/32/T/LQ/2026/11/S2B_T32TLQ_20261121T102751_L2A/,32TLQ,0.412,18964,2451,0.329,0.2888,0.0304,0.4518,0.997
+2026-11-21T11:28,s2:queyras-abries,0,"nuages, ombre ou neige (0 % du mélèze visible)",,,,,,,,,,,sentinel-2-c1-l2a/32/T/LQ/2026/11/S2B_T32TLQ_20261121T102751_L2A/,32TLQ,0.0,0,0,,,,,
